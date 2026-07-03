@@ -45,6 +45,19 @@ export const useCartStore = defineStore('cart', {
       if (existing.qty < step - 1e-9) delete this.items[id];
       this.persist();
     },
+    // Ручной ввод: округляем до ближайшего кратного шагу, 0 удаляет позицию
+    setQty(id, rawQty) {
+      const existing = this.items[id];
+      if (!existing) return;
+      const step = Number(existing.step) > 0 ? Number(existing.step) : 1;
+      const qty = Number(rawQty);
+      if (!Number.isFinite(qty) || qty < step / 2) {
+        delete this.items[id];
+      } else {
+        existing.qty = round3(Math.min(Math.max(Math.round(qty / step), 1) * step, 99));
+      }
+      this.persist();
+    },
     clear() {
       this.items = {};
       this.persist();

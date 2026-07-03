@@ -103,7 +103,15 @@ async function submit() {
         </div>
         <div class="qty">
           <button class="qty-btn" @click="cart.remove(item.id)">−</button>
-          <span class="qty-num">{{ item.qty }}</span>
+          <input
+            class="qty-input"
+            type="number"
+            :value="item.qty"
+            :step="item.step || 1"
+            min="0"
+            max="99"
+            @change="cart.setQty(item.id, $event.target.value)"
+          />
           <button class="qty-btn" @click="cart.add(item)">+</button>
         </div>
       </div>
@@ -139,7 +147,14 @@ async function submit() {
 .line-info { display: flex; flex-direction: column; font-size: 14px; }
 .qty { display: flex; align-items: center; gap: 8px; font-weight: 700; }
 .qty-btn { width: 26px; height: 26px; border-radius: 7px; background: var(--accent); color: #fff; }
-.qty-num { min-width: 28px; text-align: center; }
+.qty-input {
+  width: 62px;
+  padding: 4px 6px;
+  text-align: center;
+  font-weight: 700;
+  -moz-appearance: textfield;
+}
+.qty-input::-webkit-outer-spin-button, .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
 .row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 15px; }
 .row.total { font-weight: 800; font-size: 17px; margin-top: 6px; }
