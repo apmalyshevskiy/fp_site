@@ -55,9 +55,12 @@ adminRouter.put('/settings', async (req, res, next) => {
 });
 
 // --- Загрузка изображений (логотип, шапка, блюда) ---
-adminRouter.post('/upload', upload.single('file'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'Файл не получен' });
-  res.json({ url: `/uploads/${req.file.filename}` });
+adminRouter.post('/upload', (req, res) => {
+  upload.single('file')(req, res, (err) => {
+    if (err) return res.status(400).json({ error: err.message });
+    if (!req.file) return res.status(400).json({ error: 'Файл не получен' });
+    res.json({ url: `/uploads/${req.file.filename}` });
+  });
 });
 
 // --- Меню ---
