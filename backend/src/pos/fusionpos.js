@@ -70,6 +70,7 @@ function mapMenuResponse(data) {
     sortOrder: p.sortOrder ?? i,
     unit: p.unit ?? p.measureUnit ?? undefined, // применяется только к новым позициям
     qtyStep: p.qtyStep ?? undefined,
+    isWeight: p.isWeight ?? p.isWeighted ?? undefined,
   }));
   return { categories, products };
 }

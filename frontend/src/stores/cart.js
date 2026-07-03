@@ -33,7 +33,31 @@ export const useCartStore = defineStore('cart', {
           qty: step,
           unit: product.unit || 'шт',
           step,
+          isWeight: !!(product.isWeight ?? product.is_weight),
         };
+      }
+      this.persist();
+    },
+    // Установить точное количество (калькулятор весового товара); 0 удаляет
+    setItem(product, qty) {
+      if (!(qty > 0)) {
+        delete this.items[product.id];
+      } else {
+        const step = Number(product.step ?? product.qtyStep) > 0 ? Number(product.step ?? product.qtyStep) : 1;
+        const existing = this.items[product.id];
+        if (existing) {
+          existing.qty = round3(Math.min(qty, 99));
+        } else {
+          this.items[product.id] = {
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            qty: round3(Math.min(qty, 99)),
+            unit: product.unit || 'шт',
+            step,
+            isWeight: !!(product.isWeight ?? product.is_weight),
+          };
+        }
       }
       this.persist();
     },
@@ -45,16 +69,23 @@ export const useCartStore = defineStore('cart', {
       if (existing.qty < step - 1e-9) delete this.items[id];
       this.persist();
     },
-    // Ручной ввод: округляем до ближайшего кратного шагу, 0 удаляет позицию
+    // Ручной ввод: весовой товар — любое количество,
+    // штучный — округление до ближайшего кратного шагу. 0 удаляет позицию.
     setQty(id, rawQty) {
       const existing = this.items[id];
       if (!existing) return;
       const step = Number(existing.step) > 0 ? Number(existing.step) : 1;
       const qty = Number(rawQty);
-      if (!Number.isFinite(qty) || qty < step / 2) {
+      if (!Number.isFinite(qty) || qty <= 0) {
         delete this.items[id];
+      } else if (existing.isWeight) {
+        existing.qty = round3(Math.min(qty, 99));
       } else {
-        existing.qty = round3(Math.min(Math.max(Math.round(qty / step), 1) * step, 99));
+        if (qty < step / 2) {
+          delete this.items[id];
+        } else {
+          existing.qty = round3(Math.min(Math.max(Math.round(qty / step), 1) * step, 99));
+        }
       }
       this.persist();
     },

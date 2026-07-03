@@ -43,12 +43,21 @@ async function toggleCategory(c) {
 
 async function saveUnit(p) {
   try {
-    const updated = await api.adminPatchProduct(p.id, { unit: p.unit, qtyStep: Number(p.qty_step) });
+    const updated = await api.adminPatchProduct(p.id, {
+      unit: p.unit,
+      qtyStep: Number(p.qty_step),
+      isWeight: !!p.is_weight,
+    });
     Object.assign(p, updated, { qty_step: Number(updated.qty_step) });
     error.value = '';
   } catch (e) {
     error.value = e.message;
   }
+}
+
+function toggleWeight(p) {
+  p.is_weight = !p.is_weight;
+  saveUnit(p);
 }
 
 async function uploadImage(p, event) {
@@ -93,7 +102,7 @@ function productsOf(catId) {
     <table>
       <thead>
         <tr>
-          <th>Фото</th><th>Название</th><th>Цена</th><th>Ед. изм.</th><th>Шаг кол-ва</th><th>В POS</th><th>На сайте</th><th></th>
+          <th>Фото</th><th>Название</th><th>Цена</th><th>Ед. изм.</th><th>Шаг кол-ва</th><th>Весовой</th><th>В POS</th><th>На сайте</th><th></th>
         </tr>
       </thead>
       <tbody>
@@ -115,6 +124,9 @@ function productsOf(catId) {
           </td>
           <td>
             <input v-model="p.qty_step" class="step-input" type="number" min="0.001" step="0.001" @change="saveUnit(p)" />
+          </td>
+          <td>
+            <input type="checkbox" class="weight-check" :checked="!!p.is_weight" @change="toggleWeight(p)" />
           </td>
           <td>
             <span class="badge" :class="p.is_available ? 'green' : 'red'">
@@ -160,4 +172,5 @@ tr.dim td { opacity: .55; }
 .desc { font-size: 12px; max-width: 320px; }
 .unit-input { width: 74px; padding: 6px 8px; }
 .step-input { width: 80px; padding: 6px 8px; }
+.weight-check { width: 18px; height: 18px; cursor: pointer; }
 </style>

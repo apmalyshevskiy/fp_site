@@ -15,8 +15,8 @@ const DEMO_MENU = {
     { externalId: 'p-caesar', categoryExternalId: 'cat-salads', name: 'Цезарь с курицей', description: 'Ромэн, курица, пармезан, соус цезарь', price: 450, isAvailable: true, sortOrder: 1 },
     { externalId: 'p-greek', categoryExternalId: 'cat-salads', name: 'Греческий', description: 'Огурцы, томаты, фета, маслины', price: 390, isAvailable: true, sortOrder: 2 },
     // Весовые позиции: цена за единицу измерения, заказ дробным количеством
-    { externalId: 'p-shashlik', categoryExternalId: 'cat-grill', name: 'Шашлык из свинины', description: 'Маринованная шея, цена за кг', price: 1200, isAvailable: true, sortOrder: 1, unit: 'кг', qtyStep: 0.5 },
-    { externalId: 'p-wings', categoryExternalId: 'cat-grill', name: 'Крылышки гриль', description: 'Цена за 100 г', price: 120, isAvailable: true, sortOrder: 2, unit: '100 г', qtyStep: 1 },
+    { externalId: 'p-shashlik', categoryExternalId: 'cat-grill', name: 'Шашлык из свинины', description: 'Маринованная шея, цена за кг', price: 1200, isAvailable: true, sortOrder: 1, unit: 'кг', qtyStep: 0.5, isWeight: true },
+    { externalId: 'p-wings', categoryExternalId: 'cat-grill', name: 'Крылышки гриль', description: 'Цена за 100 г', price: 120, isAvailable: true, sortOrder: 2, unit: '100 г', qtyStep: 1, isWeight: true },
     { externalId: 'p-cola', categoryExternalId: 'cat-drinks', name: 'Кола 0.5', description: '', price: 120, isAvailable: true, sortOrder: 1 },
     { externalId: 'p-morse', categoryExternalId: 'cat-drinks', name: 'Морс клюквенный 0.4', description: '', price: 150, isAvailable: false, sortOrder: 2 },
   ],

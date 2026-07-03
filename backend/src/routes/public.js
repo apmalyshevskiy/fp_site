@@ -33,6 +33,7 @@ publicRouter.get('/menu', async (_req, res, next) => {
             imageUrl: p.image_url,
             unit: p.unit || 'шт',
             qtyStep: Number(p.qty_step) || 1,
+            isWeight: !!p.is_weight,
           })),
       }))
       .filter((c) => c.products.length > 0);

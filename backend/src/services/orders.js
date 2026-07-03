@@ -40,10 +40,14 @@ export async function createOrder(input) {
     if (!product.is_visible || !product.is_available) {
       throw httpError(400, `Позиция «${product.name}» сейчас недоступна`);
     }
-    // Количество: положительное, не больше 99, кратно шагу позиции (0.5 кг и т.п.)
+    // Количество: положительное, не больше 99.
+    // Весовой товар — произвольное количество; штучный — кратно шагу позиции.
     const step = Number(product.qty_step) || 1;
     const stepsCount = qty / step;
-    if (!Number.isFinite(qty) || qty <= 0 || qty > 99 || Math.abs(stepsCount - Math.round(stepsCount)) > 1e-6) {
+    const badQty =
+      !Number.isFinite(qty) || qty <= 0 || qty > 99 ||
+      (!product.is_weight && Math.abs(stepsCount - Math.round(stepsCount)) > 1e-6);
+    if (badQty) {
       throw httpError(400, `Неверное количество для позиции «${product.name}»`);
     }
     itemsTotal += Math.round(Number(product.price) * qty * 100) / 100;

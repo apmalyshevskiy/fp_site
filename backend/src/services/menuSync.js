@@ -57,6 +57,7 @@ export async function syncMenu() {
           external_id: p.externalId,
           unit: p.unit || 'шт',
           qty_step: p.qtyStep > 0 ? p.qtyStep : 1,
+          is_weight: !!p.isWeight,
         });
       }
       stats.products++;

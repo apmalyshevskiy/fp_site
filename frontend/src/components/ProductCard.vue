@@ -1,15 +1,28 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useCartStore } from '../stores/cart.js';
+import WeightCalculator from './WeightCalculator.vue';
 
 const props = defineProps({ product: { type: Object, required: true } });
 const cart = useCartStore();
 
+const showCalc = ref(false);
+const isWeight = computed(() => !!props.product.isWeight);
 const isPiece = computed(() => (props.product.unit || 'шт') === 'шт');
-const qtyLabel = computed(() => {
-  const qty = cart.qtyOf(props.product.id);
-  return isPiece.value ? qty : `${qty} ${props.product.unit}`;
-});
+const inCartQty = computed(() => cart.qtyOf(props.product.id));
+const qtyLabel = computed(() =>
+  isPiece.value ? inCartQty.value : `${inCartQty.value} ${props.product.unit}`
+);
+
+function onAddClick() {
+  if (isWeight.value) showCalc.value = true;
+  else cart.add(props.product);
+}
+
+function onCalcConfirm(qty) {
+  cart.setItem(props.product, qty);
+  showCalc.value = false;
+}
 </script>
 
 <template>
@@ -23,14 +36,30 @@ const qtyLabel = computed(() => {
       <p v-if="product.description" class="desc muted">{{ product.description }}</p>
       <div class="bottom">
         <span class="price">{{ product.price }} ₽<span v-if="!isPiece" class="per-unit">/{{ product.unit }}</span></span>
-        <div v-if="cart.qtyOf(product.id)" class="qty">
+
+        <!-- Весовой товар: количество открывает калькулятор -->
+        <button v-if="isWeight && inCartQty" class="qty-pill" @click="showCalc = true">
+          {{ qtyLabel }} ✎
+        </button>
+
+        <!-- Штучный товар: обычные +/− -->
+        <div v-else-if="inCartQty" class="qty">
           <button class="qty-btn" @click="cart.remove(product.id)">−</button>
           <span class="qty-label">{{ qtyLabel }}</span>
           <button class="qty-btn" @click="cart.add(product)">+</button>
         </div>
-        <button v-else class="btn btn-sm" @click="cart.add(product)">В корзину</button>
+
+        <button v-else class="btn btn-sm" @click="onAddClick">В корзину</button>
       </div>
     </div>
+
+    <WeightCalculator
+      v-if="showCalc"
+      :product="product"
+      :initial-qty="inCartQty"
+      @close="showCalc = false"
+      @confirm="onCalcConfirm"
+    />
   </article>
 </template>
 
@@ -49,8 +78,8 @@ const qtyLabel = computed(() => {
 .bottom { display: flex; align-items: center; justify-content: space-between; margin-top: auto; }
 .price { font-weight: 800; font-size: 17px; }
 .per-unit { font-weight: 600; font-size: 13px; color: var(--muted); }
-.qty-label { white-space: nowrap; font-size: 14px; }
 .qty { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+.qty-label { white-space: nowrap; font-size: 14px; }
 .qty-btn {
   width: 30px; height: 30px;
   border-radius: 8px;
@@ -58,5 +87,14 @@ const qtyLabel = computed(() => {
   color: #fff;
   font-size: 18px;
   line-height: 1;
+}
+.qty-pill {
+  padding: 7px 14px;
+  border-radius: 20px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  white-space: nowrap;
 }
 </style>
