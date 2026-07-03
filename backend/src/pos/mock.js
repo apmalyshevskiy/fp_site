@@ -1,0 +1,30 @@
+import { nanoid } from 'nanoid';
+
+// Демо-меню для разработки и демонстрации без реального FUSIONPOS
+const DEMO_MENU = {
+  categories: [
+    { externalId: 'cat-pizza', name: 'Пицца', sortOrder: 1 },
+    { externalId: 'cat-salads', name: 'Салаты', sortOrder: 2 },
+    { externalId: 'cat-drinks', name: 'Напитки', sortOrder: 3 },
+  ],
+  products: [
+    { externalId: 'p-margherita', categoryExternalId: 'cat-pizza', name: 'Маргарита', description: 'Томатный соус, моцарелла, базилик', price: 590, isAvailable: true, sortOrder: 1 },
+    { externalId: 'p-pepperoni', categoryExternalId: 'cat-pizza', name: 'Пепперони', description: 'Томатный соус, моцарелла, пепперони', price: 690, isAvailable: true, sortOrder: 2 },
+    { externalId: 'p-four-cheese', categoryExternalId: 'cat-pizza', name: 'Четыре сыра', description: 'Моцарелла, горгонзола, пармезан, чеддер', price: 750, isAvailable: true, sortOrder: 3 },
+    { externalId: 'p-caesar', categoryExternalId: 'cat-salads', name: 'Цезарь с курицей', description: 'Ромэн, курица, пармезан, соус цезарь', price: 450, isAvailable: true, sortOrder: 1 },
+    { externalId: 'p-greek', categoryExternalId: 'cat-salads', name: 'Греческий', description: 'Огурцы, томаты, фета, маслины', price: 390, isAvailable: true, sortOrder: 2 },
+    { externalId: 'p-cola', categoryExternalId: 'cat-drinks', name: 'Кола 0.5', description: '', price: 120, isAvailable: true, sortOrder: 1 },
+    { externalId: 'p-morse', categoryExternalId: 'cat-drinks', name: 'Морс клюквенный 0.4', description: '', price: 150, isAvailable: false, sortOrder: 2 },
+  ],
+};
+
+export class MockPosDriver {
+  async fetchMenu() {
+    return DEMO_MENU;
+  }
+
+  async sendOrder(_order) {
+    // Имитируем успешную отправку внешнего заказа в POS
+    return { externalId: `mock-${nanoid(10)}` };
+  }
+}
