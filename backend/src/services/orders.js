@@ -1,4 +1,3 @@
-import { nanoid } from 'nanoid';
 import { db } from '../db.js';
 import { getAllSettings } from '../settings.js';
 import { getPosDriver } from '../pos/index.js';
@@ -64,9 +63,7 @@ export async function createOrder(input) {
     deliveryFee = freeFrom > 0 && itemsTotal >= freeFrom ? 0 : fee;
   }
 
-  const publicId = nanoid(8).toUpperCase();
   const orderRow = {
-    public_id: publicId,
     type,
     customer_name: name,
     customer_phone: phone,
@@ -78,7 +75,9 @@ export async function createOrder(input) {
   };
 
   const orderId = await db.transaction(async (trx) => {
-    const [id] = await trx('orders').insert(orderRow);
+    // Числовой номер заказа для клиента = автоинкрементный id
+    const [id] = await trx('orders').insert({ ...orderRow, public_id: `tmp-${Date.now()}` });
+    await trx('orders').where({ id }).update({ public_id: String(id) });
     await trx('order_items').insert(orderItems.map((it) => ({ ...it, order_id: id })));
     return id;
   });
