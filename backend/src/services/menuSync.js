@@ -58,6 +58,7 @@ export async function syncMenu() {
           unit: p.unit || 'шт',
           qty_step: p.qtyStep > 0 ? p.qtyStep : 1,
           is_weight: !!p.isWeight,
+          weight_label: p.weightLabel || null,
         });
       }
       stats.products++;

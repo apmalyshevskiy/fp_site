@@ -30,9 +30,12 @@ function onCalcConfirm(qty) {
     <div class="img-wrap">
       <img v-if="product.imageUrl" :src="product.imageUrl" :alt="product.name" loading="lazy" />
       <div v-else class="img-placeholder">🍽️</div>
+      <!-- Количество в корзине поверх фото -->
+      <div v-if="inCartQty" class="img-badge">{{ qtyLabel }}</div>
     </div>
     <div class="body">
       <h3 class="name">{{ product.name }}</h3>
+      <p v-if="product.weightLabel" class="weight muted">{{ product.weightLabel }}</p>
       <p v-if="product.description" class="desc muted">{{ product.description }}</p>
       <div class="bottom">
         <span class="price">{{ product.price }} ₽<span v-if="!isPiece" class="per-unit">/{{ product.unit }}</span></span>
@@ -65,7 +68,21 @@ function onCalcConfirm(qty) {
 
 <style scoped>
 .product { display: flex; flex-direction: column; overflow: hidden; }
-.img-wrap { aspect-ratio: 4 / 3; background: #f3efe9; }
+.img-wrap { aspect-ratio: 4 / 3; background: #f3efe9; position: relative; }
+.img-badge {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, .35);
+  color: #fff;
+  font-size: 34px;
+  font-weight: 800;
+  text-shadow: 0 2px 8px rgba(0,0,0,.5);
+  pointer-events: none;
+}
+.weight { margin: -4px 0 6px; font-size: 12px; }
 .img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .img-placeholder {
   width: 100%; height: 100%;

@@ -71,6 +71,7 @@ function mapMenuResponse(data) {
     unit: p.unit ?? p.measureUnit ?? undefined, // применяется только к новым позициям
     qtyStep: p.qtyStep ?? undefined,
     isWeight: p.isWeight ?? p.isWeighted ?? undefined,
+    weightLabel: p.weight ?? p.portionWeight ?? undefined,
   }));
   return { categories, products };
 }

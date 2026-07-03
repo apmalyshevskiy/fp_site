@@ -47,6 +47,7 @@ async function saveUnit(p) {
       unit: p.unit,
       qtyStep: Number(p.qty_step),
       isWeight: !!p.is_weight,
+      weightLabel: p.weight_label || '',
     });
     Object.assign(p, updated, { qty_step: Number(updated.qty_step) });
     error.value = '';
@@ -102,7 +103,7 @@ function productsOf(catId) {
     <table>
       <thead>
         <tr>
-          <th>Фото</th><th>Название</th><th>Цена</th><th>Ед. изм.</th><th>Шаг кол-ва</th><th>Весовой</th><th>В POS</th><th>На сайте</th><th></th>
+          <th>Фото</th><th>Название</th><th>Цена</th><th>Вес порции</th><th>Ед. изм.</th><th>Шаг кол-ва</th><th>Весовой</th><th>В POS</th><th>На сайте</th><th></th>
         </tr>
       </thead>
       <tbody>
@@ -119,6 +120,9 @@ function productsOf(catId) {
             <div class="muted desc">{{ p.description }}</div>
           </td>
           <td>{{ Number(p.price) }} ₽<span v-if="p.unit !== 'шт'" class="muted">/{{ p.unit }}</span></td>
+          <td>
+            <input v-model="p.weight_label" class="unit-input" maxlength="30" placeholder="367 г" @change="saveUnit(p)" />
+          </td>
           <td>
             <input v-model="p.unit" class="unit-input" maxlength="20" @change="saveUnit(p)" />
           </td>

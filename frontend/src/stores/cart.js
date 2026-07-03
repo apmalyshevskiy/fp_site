@@ -34,6 +34,7 @@ export const useCartStore = defineStore('cart', {
           unit: product.unit || 'шт',
           step,
           isWeight: !!(product.isWeight ?? product.is_weight),
+          imageUrl: product.imageUrl || null,
         };
       }
       this.persist();
@@ -56,6 +57,7 @@ export const useCartStore = defineStore('cart', {
             unit: product.unit || 'шт',
             step,
             isWeight: !!(product.isWeight ?? product.is_weight),
+            imageUrl: product.imageUrl || null,
           };
         }
       }

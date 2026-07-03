@@ -34,6 +34,7 @@ publicRouter.get('/menu', async (_req, res, next) => {
             unit: p.unit || 'шт',
             qtyStep: Number(p.qty_step) || 1,
             isWeight: !!p.is_weight,
+            weightLabel: p.weight_label || null,
           })),
       }))
       .filter((c) => c.products.length > 0);

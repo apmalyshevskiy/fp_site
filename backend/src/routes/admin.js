@@ -88,6 +88,9 @@ adminRouter.patch('/products/:id', async (req, res, next) => {
     if ('sortOrder' in req.body) patch.sort_order = Number(req.body.sortOrder) || 0;
     if ('unit' in req.body) patch.unit = String(req.body.unit || 'шт').trim().slice(0, 20) || 'шт';
     if ('isWeight' in req.body) patch.is_weight = !!req.body.isWeight;
+    if ('weightLabel' in req.body) {
+      patch.weight_label = String(req.body.weightLabel || '').trim().slice(0, 30) || null;
+    }
     if ('qtyStep' in req.body) {
       const step = Number(req.body.qtyStep);
       if (!(step > 0 && step <= 99)) return res.status(400).json({ error: 'Шаг количества должен быть больше 0' });
