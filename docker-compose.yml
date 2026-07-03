@@ -1,0 +1,44 @@
+services:
+  db:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_password}
+      MARIADB_DATABASE: ${DB_NAME:-fp_site}
+      MARIADB_USER: ${DB_USER:-fp}
+      MARIADB_PASSWORD: ${DB_PASSWORD:-fp_password}
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 3000
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-fp}
+      DB_PASSWORD: ${DB_PASSWORD:-fp_password}
+      DB_NAME: ${DB_NAME:-fp_site}
+      JWT_SECRET: ${JWT_SECRET:?Задайте JWT_SECRET в .env}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      POS_DRIVER: ${POS_DRIVER:-mock}
+      FUSIONPOS_BASE_URL: ${FUSIONPOS_BASE_URL:-}
+      FUSIONPOS_TOKEN: ${FUSIONPOS_TOKEN:-}
+    volumes:
+      - uploads:/data/uploads
+    ports:
+      - "${APP_PORT:-8080}:3000"
+
+volumes:
+  db_data:
+  uploads:
