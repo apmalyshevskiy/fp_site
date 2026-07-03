@@ -68,6 +68,8 @@ function mapMenuResponse(data) {
     price: Number(p.price ?? 0),
     isAvailable: p.inStopList != null ? !p.inStopList : (p.isAvailable ?? true),
     sortOrder: p.sortOrder ?? i,
+    unit: p.unit ?? p.measureUnit ?? undefined, // применяется только к новым позициям
+    qtyStep: p.qtyStep ?? undefined,
   }));
   return { categories, products };
 }
@@ -88,7 +90,8 @@ function buildOrderPayload(order) {
       id: it.external_id,
       name: it.name,
       price: Number(it.price),
-      quantity: it.qty,
+      quantity: Number(it.qty),
+      unit: it.unit,
     })),
     deliveryFee: Number(order.delivery_fee),
     total: Number(order.total),

@@ -1,8 +1,15 @@
 <script setup>
+import { computed } from 'vue';
 import { useCartStore } from '../stores/cart.js';
 
 const props = defineProps({ product: { type: Object, required: true } });
 const cart = useCartStore();
+
+const isPiece = computed(() => (props.product.unit || 'шт') === 'шт');
+const qtyLabel = computed(() => {
+  const qty = cart.qtyOf(props.product.id);
+  return isPiece.value ? qty : `${qty} ${props.product.unit}`;
+});
 </script>
 
 <template>
@@ -15,10 +22,10 @@ const cart = useCartStore();
       <h3 class="name">{{ product.name }}</h3>
       <p v-if="product.description" class="desc muted">{{ product.description }}</p>
       <div class="bottom">
-        <span class="price">{{ product.price }} ₽</span>
+        <span class="price">{{ product.price }} ₽<span v-if="!isPiece" class="per-unit">/{{ product.unit }}</span></span>
         <div v-if="cart.qtyOf(product.id)" class="qty">
           <button class="qty-btn" @click="cart.remove(product.id)">−</button>
-          <span>{{ cart.qtyOf(product.id) }}</span>
+          <span class="qty-label">{{ qtyLabel }}</span>
           <button class="qty-btn" @click="cart.add(product)">+</button>
         </div>
         <button v-else class="btn btn-sm" @click="cart.add(product)">В корзину</button>
@@ -41,6 +48,8 @@ const cart = useCartStore();
 .desc { margin: 0 0 10px; font-size: 13px; flex: 1; }
 .bottom { display: flex; align-items: center; justify-content: space-between; margin-top: auto; }
 .price { font-weight: 800; font-size: 17px; }
+.per-unit { font-weight: 600; font-size: 13px; color: var(--muted); }
+.qty-label { white-space: nowrap; font-size: 14px; }
 .qty { display: flex; align-items: center; gap: 10px; font-weight: 700; }
 .qty-btn {
   width: 30px; height: 30px;

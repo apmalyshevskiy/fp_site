@@ -11,7 +11,7 @@ const error = ref('');
 async function load() {
   const data = await api.adminGetMenu();
   categories.value = data.categories;
-  products.value = data.products;
+  products.value = data.products.map((p) => ({ ...p, qty_step: Number(p.qty_step) }));
 }
 onMounted(load);
 
@@ -39,6 +39,16 @@ async function toggleProduct(p) {
 async function toggleCategory(c) {
   const updated = await api.adminPatchCategory(c.id, { isVisible: !c.is_visible });
   Object.assign(c, updated);
+}
+
+async function saveUnit(p) {
+  try {
+    const updated = await api.adminPatchProduct(p.id, { unit: p.unit, qtyStep: Number(p.qty_step) });
+    Object.assign(p, updated, { qty_step: Number(updated.qty_step) });
+    error.value = '';
+  } catch (e) {
+    error.value = e.message;
+  }
 }
 
 async function uploadImage(p, event) {
@@ -83,7 +93,7 @@ function productsOf(catId) {
     <table>
       <thead>
         <tr>
-          <th>Фото</th><th>Название</th><th>Цена</th><th>В POS</th><th>На сайте</th><th></th>
+          <th>Фото</th><th>Название</th><th>Цена</th><th>Ед. изм.</th><th>Шаг кол-ва</th><th>В POS</th><th>На сайте</th><th></th>
         </tr>
       </thead>
       <tbody>
@@ -99,7 +109,13 @@ function productsOf(catId) {
             <strong>{{ p.name }}</strong>
             <div class="muted desc">{{ p.description }}</div>
           </td>
-          <td>{{ Number(p.price) }} ₽</td>
+          <td>{{ Number(p.price) }} ₽<span v-if="p.unit !== 'шт'" class="muted">/{{ p.unit }}</span></td>
+          <td>
+            <input v-model="p.unit" class="unit-input" maxlength="20" @change="saveUnit(p)" />
+          </td>
+          <td>
+            <input v-model="p.qty_step" class="step-input" type="number" min="0.001" step="0.001" @change="saveUnit(p)" />
+          </td>
           <td>
             <span class="badge" :class="p.is_available ? 'green' : 'red'">
               {{ p.is_available ? 'доступно' : 'стоп' }}
@@ -142,4 +158,6 @@ tr.dim td { opacity: .55; }
   color: var(--muted);
 }
 .desc { font-size: 12px; max-width: 320px; }
+.unit-input { width: 74px; padding: 6px 8px; }
+.step-input { width: 80px; padding: 6px 8px; }
 </style>

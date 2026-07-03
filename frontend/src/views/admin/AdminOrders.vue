@@ -73,7 +73,8 @@ function fmtDate(d) {
       </div>
       <div class="items">
         <div v-for="it in o.items" :key="it.id" class="item-line">
-          {{ it.name }} × {{ it.qty }} <span class="muted">{{ Number(it.price) * it.qty }} ₽</span>
+          {{ it.name }} × {{ Number(it.qty) }}{{ it.unit && it.unit !== 'шт' ? ` ${it.unit}` : '' }}
+          <span class="muted">{{ Math.round(Number(it.price) * Number(it.qty) * 100) / 100 }} ₽</span>
         </div>
         <div v-if="Number(o.delivery_fee)" class="item-line muted">Доставка {{ Number(o.delivery_fee) }} ₽</div>
         <div class="item-line total">Итого {{ Number(o.total) }} ₽</div>

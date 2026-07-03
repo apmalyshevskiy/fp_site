@@ -35,21 +35,28 @@ export async function createOrder(input) {
   const orderItems = [];
   for (const item of items) {
     const product = byId[Number(item.productId)];
-    const qty = Math.floor(Number(item.qty));
+    const qty = Number(item.qty);
     if (!product) throw httpError(400, 'Некоторые позиции больше недоступны, обновите страницу');
     if (!product.is_visible || !product.is_available) {
       throw httpError(400, `Позиция «${product.name}» сейчас недоступна`);
     }
-    if (!(qty >= 1 && qty <= 99)) throw httpError(400, 'Неверное количество');
-    itemsTotal += Number(product.price) * qty;
+    // Количество: положительное, не больше 99, кратно шагу позиции (0.5 кг и т.п.)
+    const step = Number(product.qty_step) || 1;
+    const stepsCount = qty / step;
+    if (!Number.isFinite(qty) || qty <= 0 || qty > 99 || Math.abs(stepsCount - Math.round(stepsCount)) > 1e-6) {
+      throw httpError(400, `Неверное количество для позиции «${product.name}»`);
+    }
+    itemsTotal += Math.round(Number(product.price) * qty * 100) / 100;
     orderItems.push({
       product_id: product.id,
       external_id: product.external_id,
       name: product.name,
       price: product.price,
       qty,
+      unit: product.unit || 'шт',
     });
   }
+  itemsTotal = Math.round(itemsTotal * 100) / 100;
 
   const minOrder = Number(settings.delivery_min_order || 0);
   if (type === 'delivery' && itemsTotal < minOrder) {

@@ -31,6 +31,8 @@ publicRouter.get('/menu', async (_req, res, next) => {
             description: p.description,
             price: Number(p.price),
             imageUrl: p.image_url,
+            unit: p.unit || 'шт',
+            qtyStep: Number(p.qty_step) || 1,
           })),
       }))
       .filter((c) => c.products.length > 0);

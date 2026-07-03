@@ -86,6 +86,12 @@ adminRouter.patch('/products/:id', async (req, res, next) => {
     if ('imageUrl' in req.body) patch.image_url = req.body.imageUrl || null;
     if ('isVisible' in req.body) patch.is_visible = !!req.body.isVisible;
     if ('sortOrder' in req.body) patch.sort_order = Number(req.body.sortOrder) || 0;
+    if ('unit' in req.body) patch.unit = String(req.body.unit || 'шт').trim().slice(0, 20) || 'шт';
+    if ('qtyStep' in req.body) {
+      const step = Number(req.body.qtyStep);
+      if (!(step > 0 && step <= 99)) return res.status(400).json({ error: 'Шаг количества должен быть больше 0' });
+      patch.qty_step = step;
+    }
     if (!Object.keys(patch).length) return res.status(400).json({ error: 'Нет изменений' });
     await db('products').where({ id: req.params.id }).update({ ...patch, updated_at: db.fn.now() });
     res.json(await db('products').where({ id: req.params.id }).first());

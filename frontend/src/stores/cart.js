@@ -1,14 +1,18 @@
 import { defineStore } from 'pinia';
 
+// Дробные количества (0.5 кг и т.п.): считаем с округлением до 3 знаков
+const round3 = (n) => Math.round(n * 1000) / 1000;
+
 export const useCartStore = defineStore('cart', {
   state: () => ({
-    // items: { [productId]: { id, name, price, qty } }
+    // items: { [productId]: { id, name, price, qty, unit, step } }
     items: JSON.parse(localStorage.getItem('cart') || '{}'),
   }),
   getters: {
     list: (s) => Object.values(s.items),
-    count: (s) => Object.values(s.items).reduce((a, i) => a + i.qty, 0),
-    total: (s) => Object.values(s.items).reduce((a, i) => a + i.price * i.qty, 0),
+    count: (s) => Object.keys(s.items).length,
+    total: (s) =>
+      Math.round(Object.values(s.items).reduce((a, i) => a + i.price * i.qty, 0) * 100) / 100,
     qtyOf: (s) => (id) => s.items[id]?.qty || 0,
   },
   actions: {
@@ -16,16 +20,29 @@ export const useCartStore = defineStore('cart', {
       localStorage.setItem('cart', JSON.stringify(this.items));
     },
     add(product) {
+      const step = Number(product.step ?? product.qtyStep) > 0 ? Number(product.step ?? product.qtyStep) : 1;
       const existing = this.items[product.id];
-      if (existing) existing.qty = Math.min(existing.qty + 1, 99);
-      else this.items[product.id] = { id: product.id, name: product.name, price: product.price, qty: 1 };
+      if (existing) {
+        existing.step = Number(existing.step) > 0 ? Number(existing.step) : step;
+        existing.qty = round3(Math.min(existing.qty + existing.step, 99));
+      } else {
+        this.items[product.id] = {
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          qty: step,
+          unit: product.unit || 'шт',
+          step,
+        };
+      }
       this.persist();
     },
     remove(id) {
       const existing = this.items[id];
       if (!existing) return;
-      existing.qty -= 1;
-      if (existing.qty <= 0) delete this.items[id];
+      const step = Number(existing.step) > 0 ? Number(existing.step) : 1;
+      existing.qty = round3(existing.qty - step);
+      if (existing.qty < step - 1e-9) delete this.items[id];
       this.persist();
     },
     clear() {

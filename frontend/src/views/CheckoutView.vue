@@ -99,11 +99,11 @@ async function submit() {
       <div v-for="item in cart.list" :key="item.id" class="line">
         <div class="line-info">
           <span>{{ item.name }}</span>
-          <span class="muted">{{ item.price }} ₽ × {{ item.qty }}</span>
+          <span class="muted">{{ item.price }} ₽ × {{ item.qty }}{{ item.unit && item.unit !== 'шт' ? ` ${item.unit}` : '' }}</span>
         </div>
         <div class="qty">
           <button class="qty-btn" @click="cart.remove(item.id)">−</button>
-          <span>{{ item.qty }}</span>
+          <span class="qty-num">{{ item.qty }}</span>
           <button class="qty-btn" @click="cart.add(item)">+</button>
         </div>
       </div>
@@ -139,6 +139,7 @@ async function submit() {
 .line-info { display: flex; flex-direction: column; font-size: 14px; }
 .qty { display: flex; align-items: center; gap: 8px; font-weight: 700; }
 .qty-btn { width: 26px; height: 26px; border-radius: 7px; background: var(--accent); color: #fff; }
+.qty-num { min-width: 28px; text-align: center; }
 hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
 .row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 15px; }
 .row.total { font-weight: 800; font-size: 17px; margin-top: 6px; }
