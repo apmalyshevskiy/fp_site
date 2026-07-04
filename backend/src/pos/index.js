@@ -6,7 +6,8 @@ import { getAllSettings } from '../settings.js';
  * Единый интерфейс драйвера POS:
  *   fetchMenu(): Promise<{ categories: [{externalId, name, sortOrder}],
  *                          products: [{externalId, categoryExternalId, name, description,
- *                                      price, isAvailable, sortOrder}] }>
+ *                                      price, isAvailable, sortOrder,
+ *                                      unit?, qtyStep?}] }>
  *   sendOrder(order): Promise<{ externalId: string }>
  *
  * Драйвер выбирается настройкой pos_driver (в БД) или переменной POS_DRIVER.

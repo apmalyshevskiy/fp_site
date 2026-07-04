@@ -49,9 +49,17 @@ export async function syncMenu() {
       };
       const existing = await trx('products').where({ external_id: p.externalId }).first();
       if (existing) {
+        // unit/qty_step не обновляем: это настройки позиции, управляются из админки
         await trx('products').where({ id: existing.id }).update({ ...row, updated_at: trx.fn.now() });
       } else {
-        await trx('products').insert({ ...row, external_id: p.externalId });
+        await trx('products').insert({
+          ...row,
+          external_id: p.externalId,
+          unit: p.unit || 'шт',
+          qty_step: p.qtyStep > 0 ? p.qtyStep : 1,
+          is_weight: !!p.isWeight,
+          weight_label: p.weightLabel || null,
+        });
       }
       stats.products++;
     }

@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue';
 import { api } from '../api.js';
 import ProductCard from '../components/ProductCard.vue';
 import CartBar from '../components/CartBar.vue';
+import CartSidebar from '../components/CartSidebar.vue';
 
 const menu = ref([]);
 const loading = ref(true);
@@ -32,30 +33,51 @@ function scrollToCategory(id) {
   <div v-else-if="!menu.length" class="muted">Меню пока пусто. Загляните позже!</div>
 
   <template v-else>
-    <nav class="cat-nav">
-      <button
-        v-for="cat in menu"
-        :key="cat.id"
-        class="cat-chip"
-        :class="{ active: activeCategory === cat.id }"
-        @click="scrollToCategory(cat.id)"
-      >
-        {{ cat.name }}
-      </button>
-    </nav>
+    <div class="menu-layout">
+      <div class="menu-main">
+        <nav class="cat-nav">
+          <button
+            v-for="cat in menu"
+            :key="cat.id"
+            class="cat-chip"
+            :class="{ active: activeCategory === cat.id }"
+            @click="scrollToCategory(cat.id)"
+          >
+            {{ cat.name }}
+          </button>
+        </nav>
 
-    <section v-for="cat in menu" :key="cat.id" :id="`cat-${cat.id}`" class="cat-section">
-      <h2>{{ cat.name }}</h2>
-      <div class="grid">
-        <ProductCard v-for="p in cat.products" :key="p.id" :product="p" />
+        <section v-for="cat in menu" :key="cat.id" :id="`cat-${cat.id}`" class="cat-section">
+          <h2>{{ cat.name }}</h2>
+          <div class="grid">
+            <ProductCard v-for="p in cat.products" :key="p.id" :product="p" />
+          </div>
+        </section>
       </div>
-    </section>
 
-    <CartBar />
+      <CartSidebar class="desktop-cart" />
+    </div>
+
+    <!-- Плавающая корзина только на мобильных, где сайдбар скрыт -->
+    <CartBar class="mobile-cart" />
   </template>
 </template>
 
 <style scoped>
+.menu-layout {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 20px;
+  align-items: start;
+}
+.menu-main { min-width: 0; }
+@media (max-width: 900px) {
+  .menu-layout { grid-template-columns: 1fr; }
+  .desktop-cart { display: none; }
+}
+@media (min-width: 901px) {
+  .mobile-cart { display: none; }
+}
 .cat-nav {
   display: flex;
   gap: 8px;

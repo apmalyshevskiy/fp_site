@@ -1,4 +1,3 @@
-import { nanoid } from 'nanoid';
 import { db } from '../db.js';
 import { getAllSettings } from '../settings.js';
 import { getPosDriver } from '../pos/index.js';
@@ -36,21 +35,32 @@ export async function createOrder(input) {
   const orderItems = [];
   for (const item of items) {
     const product = byId[Number(item.productId)];
-    const qty = Math.floor(Number(item.qty));
+    const qty = Number(item.qty);
     if (!product) throw httpError(400, 'Некоторые позиции больше недоступны, обновите страницу');
     if (!product.is_visible || !product.is_available) {
       throw httpError(400, `Позиция «${product.name}» сейчас недоступна`);
     }
-    if (!(qty >= 1 && qty <= 99)) throw httpError(400, 'Неверное количество');
-    itemsTotal += Number(product.price) * qty;
+    // Количество: положительное, не больше 99.
+    // Весовой товар — произвольное количество; штучный — кратно шагу позиции.
+    const step = Number(product.qty_step) || 1;
+    const stepsCount = qty / step;
+    const badQty =
+      !Number.isFinite(qty) || qty <= 0 || qty > 99 ||
+      (!product.is_weight && Math.abs(stepsCount - Math.round(stepsCount)) > 1e-6);
+    if (badQty) {
+      throw httpError(400, `Неверное количество для позиции «${product.name}»`);
+    }
+    itemsTotal += Math.round(Number(product.price) * qty * 100) / 100;
     orderItems.push({
       product_id: product.id,
       external_id: product.external_id,
       name: product.name,
       price: product.price,
       qty,
+      unit: product.unit || 'шт',
     });
   }
+  itemsTotal = Math.round(itemsTotal * 100) / 100;
 
   const minOrder = Number(settings.delivery_min_order || 0);
   if (type === 'delivery' && itemsTotal < minOrder) {
@@ -64,9 +74,7 @@ export async function createOrder(input) {
     deliveryFee = freeFrom > 0 && itemsTotal >= freeFrom ? 0 : fee;
   }
 
-  const publicId = nanoid(8).toUpperCase();
   const orderRow = {
-    public_id: publicId,
     type,
     customer_name: name,
     customer_phone: phone,
@@ -78,7 +86,9 @@ export async function createOrder(input) {
   };
 
   const orderId = await db.transaction(async (trx) => {
-    const [id] = await trx('orders').insert(orderRow);
+    // Числовой номер заказа для клиента = автоинкрементный id
+    const [id] = await trx('orders').insert({ ...orderRow, public_id: `tmp-${Date.now()}` });
+    await trx('orders').where({ id }).update({ public_id: String(id) });
     await trx('order_items').insert(orderItems.map((it) => ({ ...it, order_id: id })));
     return id;
   });
