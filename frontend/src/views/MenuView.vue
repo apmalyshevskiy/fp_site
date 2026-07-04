@@ -66,7 +66,7 @@ function scrollToCategory(id) {
 <style scoped>
 .menu-layout {
   display: grid;
-  grid-template-columns: 1fr 300px;
+  grid-template-columns: 1fr 390px;
   gap: 20px;
   align-items: start;
 }
@@ -99,7 +99,7 @@ function scrollToCategory(id) {
 .cat-section { scroll-margin-top: 70px; }
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(191px, 1fr));
+  gap: 13px;
 }
 </style>

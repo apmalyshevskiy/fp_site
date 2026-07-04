@@ -77,7 +77,7 @@ export const useCartStore = defineStore('cart', {
       const existing = this.items[id];
       if (!existing) return;
       const step = Number(existing.step) > 0 ? Number(existing.step) : 1;
-      const qty = Number(rawQty);
+      const qty = Number(String(rawQty).replace(',', '.'));
       if (!Number.isFinite(qty) || qty <= 0) {
         delete this.items[id];
       } else if (existing.isWeight) {

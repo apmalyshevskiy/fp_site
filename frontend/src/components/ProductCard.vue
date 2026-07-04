@@ -52,7 +52,7 @@ function onCalcConfirm(qty) {
           <button class="qty-btn" @click="cart.add(product)">+</button>
         </div>
 
-        <button v-else class="btn btn-sm" @click="onAddClick">В корзину</button>
+        <button v-else class="btn btn-sm" @click="onAddClick">Заказать</button>
       </div>
     </div>
 
@@ -67,46 +67,58 @@ function onCalcConfirm(qty) {
 </template>
 
 <style scoped>
-.product { display: flex; flex-direction: column; overflow: hidden; }
-.img-wrap { aspect-ratio: 4 / 3; background: #f3efe9; position: relative; }
+.product {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 20px;
+  border-color: #ded5c8;
+  box-shadow: 0 1px 2px rgba(31, 26, 23, .04);
+  transition: box-shadow .18s, transform .18s;
+}
+.product:hover {
+  box-shadow: 0 10px 24px rgba(31, 26, 23, .1);
+  transform: translateY(-2px);
+}
+.img-wrap { aspect-ratio: 4 / 3; background: #f3efe9; position: relative; border-bottom: 1px solid #ded5c8; }
 .img-badge {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, .35);
+  background: rgba(0, 0, 0, .4);
   color: #fff;
-  font-size: 34px;
+  font-size: 40px;
   font-weight: 800;
-  text-shadow: 0 2px 8px rgba(0,0,0,.5);
+  text-shadow: 0 2px 10px rgba(0,0,0,.55);
   pointer-events: none;
 }
-.weight { margin: -4px 0 6px; font-size: 12px; }
+.weight { margin: -3px 0 6px; font-size: 13px; }
 .img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .img-placeholder {
   width: 100%; height: 100%;
   display: flex; align-items: center; justify-content: center;
-  font-size: 42px; opacity: .4;
+  font-size: 34px; opacity: .4;
 }
-.body { padding: 14px; display: flex; flex-direction: column; flex: 1; }
-.name { margin: 0 0 6px; font-size: 17px; }
-.desc { margin: 0 0 10px; font-size: 13px; flex: 1; }
+.body { padding: 11px; display: flex; flex-direction: column; flex: 1; }
+.name { margin: 0 0 6px; font-size: 18px; font-weight: 700; letter-spacing: -.1px; }
+.desc { margin: 0 0 8px; font-size: 14px; flex: 1; }
 .bottom { display: flex; align-items: center; justify-content: space-between; margin-top: auto; }
-.price { font-weight: 800; font-size: 17px; }
+.price { font-weight: 800; font-size: 18px; }
 .per-unit { font-weight: 600; font-size: 13px; color: var(--muted); }
-.qty { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+.qty { display: flex; align-items: center; gap: 8px; font-weight: 700; }
 .qty-label { white-space: nowrap; font-size: 14px; }
 .qty-btn {
-  width: 30px; height: 30px;
-  border-radius: 8px;
+  width: 29px; height: 29px;
+  border-radius: 9px;
   background: var(--accent);
   color: #fff;
-  font-size: 18px;
+  font-size: 19px;
   line-height: 1;
 }
 .qty-pill {
-  padding: 7px 14px;
+  padding: 7px 13px;
   border-radius: 20px;
   background: var(--accent);
   color: #fff;
@@ -114,4 +126,5 @@ function onCalcConfirm(qty) {
   font-size: 14px;
   white-space: nowrap;
 }
+.bottom .btn-sm { padding: 6px 11px; font-size: 14px; border-radius: 11px; }
 </style>

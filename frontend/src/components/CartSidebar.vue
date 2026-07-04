@@ -10,13 +10,17 @@ function qtySuffix(item) {
 function lineSum(item) {
   return Math.round(item.price * item.qty * 100) / 100;
 }
+
+function onClear() {
+  if (confirm('Очистить корзину?')) cart.clear();
+}
 </script>
 
 <template>
   <aside class="cart-side card">
     <header class="head">
       <h3>Корзина</h3>
-      <button v-if="cart.count" class="trash" title="Очистить корзину" @click="cart.clear()">🗑</button>
+      <button v-if="cart.count" class="trash" title="Очистить корзину" @click="onClear">🗑</button>
     </header>
 
     <p v-if="!cart.count" class="muted empty">Корзина пуста — добавьте что-нибудь из меню</p>
@@ -34,11 +38,9 @@ function lineSum(item) {
               <button class="qty-btn" @click="cart.remove(item.id)">−</button>
               <input
                 class="qty-input"
-                type="number"
+                type="text"
+                inputmode="decimal"
                 :value="item.qty"
-                :step="item.step || 1"
-                min="0"
-                max="99"
                 @change="cart.setQty(item.id, $event.target.value)"
               />
               <span v-if="qtySuffix(item)" class="unit muted">{{ item.unit }}</span>
@@ -113,9 +115,7 @@ function lineSum(item) {
   text-align: center;
   font-weight: 700;
   font-size: 13px;
-  -moz-appearance: textfield;
 }
-.qty-input::-webkit-outer-spin-button, .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .unit { font-size: 12px; }
 .sum { font-size: 13px; font-weight: 700; margin-top: 5px; }
 .details { margin-top: 12px; }

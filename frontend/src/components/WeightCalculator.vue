@@ -19,7 +19,7 @@ const valid = computed(() => Number.isFinite(Number(qty.value)) && Number(qty.va
 function inc() { qty.value = round3(Math.min((Number(qty.value) || 0) + step.value, 99)); }
 function dec() { qty.value = round3(Math.max((Number(qty.value) || 0) - step.value, step.value)); }
 function onInput(e) {
-  const v = Number(e.target.value);
+  const v = Number(String(e.target.value).replace(',', '.'));
   qty.value = Number.isFinite(v) ? v : 0;
 }
 function confirm() {
@@ -39,12 +39,9 @@ function confirm() {
         <button class="qty-btn" @click="dec">−</button>
         <div class="input-wrap">
           <input
-            type="number"
-            :value="qty"
-            min="0"
-            max="99"
-            :step="step"
+            type="text"
             inputmode="decimal"
+            :value="qty"
             @input="onInput"
             @keyup.enter="confirm"
           />
@@ -105,10 +102,7 @@ function confirm() {
   font-size: 20px;
   font-weight: 700;
   padding-right: 52px;
-  -moz-appearance: textfield;
 }
-.input-wrap input::-webkit-outer-spin-button,
-.input-wrap input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .unit {
   position: absolute;
   right: 12px;
