@@ -15,10 +15,10 @@ function findExisting(trx, table, externalId, externalUuid) {
 /**
  * Синхронизация меню из POS в MariaDB.
  * Локальные оверрайды (is_visible, unit, qty_step) при повторном синке не
- * затираются. Картинка из POS подставляется, только если своя ещё не
- * загружена (image_url пуст) — если админ уже поставил свою, POS её не
- * трогает. Позиции, исчезнувшие из POS, помечаются недоступными (не
- * удаляются, чтобы не потерять картинки и историю).
+ * затираются. Картинка и вес порции из POS подставляются, только если своих
+ * ещё нет (image_url/weight_label пусты) — если админ уже задал своё
+ * значение, POS его не трогает. Позиции, исчезнувшие из POS, помечаются
+ * недоступными (не удаляются, чтобы не потерять картинки и историю).
  */
 export async function syncMenu() {
   const pos = await getPosDriver();
@@ -75,8 +75,10 @@ export async function syncMenu() {
       if (existing) {
         id = existing.id;
         // unit/qty_step не обновляем: это настройки позиции, управляются из админки.
-        // image_url подставляем из POS, только если своя картинка ещё не загружена.
+        // image_url и weight_label подставляем из POS, только если своих ещё нет —
+        // номенклатура (а с ней и вес порции) есть не у каждой позиции.
         if (p.imageUrl && !existing.image_url) row.image_url = p.imageUrl;
+        if (p.weightLabel && !existing.weight_label) row.weight_label = p.weightLabel;
         await trx('products').where({ id }).update({ ...row, updated_at: trx.fn.now() });
       } else {
         [id] = await trx('products').insert({

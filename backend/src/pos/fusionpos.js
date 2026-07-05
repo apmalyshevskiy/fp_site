@@ -13,7 +13,9 @@
  * оба, сопоставление идёт по любому из них (см. menuSync.js).
  *
  * С expand=nomenclature позиция приходит с описанием и КБЖУ из связанной
- * номенклатуры — используем их для description/compound/allergens/БЖУ.
+ * номенклатуры — используем их для description/compound/allergens/БЖУ, а
+ * также scale_value/scale_name (вес/размерность, например 350 + "г") — для
+ * weight_label. Позиция может быть не привязана к номенклатуре вообще.
  *
  * Пока реализована только загрузка меню (категории + позиции), как и
  * договаривались. Публичная спецификация API v1 не описывает эндпоинт
@@ -102,6 +104,16 @@ function nomField(p, field) {
   return v === undefined ? null : v;
 }
 
+// Вес порции из номенклатуры (scale_value + scale_name, например 350 + "г").
+// Позиция может быть не привязана к номенклатуре вообще — тогда null,
+// menuSync.js в этом случае не трогает то, что уже стоит на сайте.
+function nomWeightLabel(p) {
+  const value = nomField(p, 'scale_value');
+  if (value === null || value === undefined) return null;
+  const unit = nomField(p, 'scale_name');
+  return unit ? `${value} ${unit}` : String(value);
+}
+
 // Маппинг ответа FUSIONPOS (/menu-categories, /menus) в наш внутренний формат меню.
 function mapMenuResponse(categoriesRaw, productsRaw) {
   const categories = categoriesRaw.map((c) => ({
@@ -123,6 +135,7 @@ function mapMenuResponse(categoriesRaw, productsRaw) {
     carbohydrate: nomField(p, 'carbohydrate'),
     kilocalories: nomField(p, 'kilocalories'),
     imageUrl: p.image_url || null,
+    weightLabel: nomWeightLabel(p),
     price: Math.round(Number(p.price) || 0) / 100, // цена у FUSIONPOS — в копейках
     isAvailable: p.is_active !== false && !p.is_stopped,
     sortOrder: p.sort_position ?? 0,
