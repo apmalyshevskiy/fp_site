@@ -8,6 +8,7 @@ import { login, requireAuth } from '../auth.js';
 import { getAllSettings, setSettings } from '../settings.js';
 import { syncMenu } from '../services/menuSync.js';
 import { pushOrderToPos } from '../services/orders.js';
+import { mergeOverrides, PRODUCT_OVERRIDABLE_FIELDS, CATEGORY_OVERRIDABLE_FIELDS } from '../services/overrides.js';
 
 export const adminRouter = Router();
 
@@ -115,6 +116,36 @@ adminRouter.patch('/categories/:id', async (req, res, next) => {
     if (!Object.keys(patch).length) return res.status(400).json({ error: 'Нет изменений' });
     await db('categories').where({ id: req.params.id }).update({ ...patch, updated_at: db.fn.now() });
     res.json(await db('categories').where({ id: req.params.id }).first());
+  } catch (e) { next(e); }
+});
+
+// Переопределение полей поверх POS (name/price/БЖУ/... — см. overrides.js).
+// { set: { price: 480 }, revert: ['name'] }. Синк из FUSIONPOS эти поля
+// продолжает писать в сырые колонки, наружу (публичное меню) отдаётся
+// переопределённое значение.
+adminRouter.patch('/products/:id/override', async (req, res, next) => {
+  try {
+    const row = await db('products').where({ id: req.params.id }).first();
+    if (!row) return res.status(404).json({ error: 'Не найдено' });
+    const overrides = mergeOverrides(row.field_overrides, req.body || {}, PRODUCT_OVERRIDABLE_FIELDS);
+    await db('products').where({ id: row.id }).update({
+      field_overrides: Object.keys(overrides).length ? JSON.stringify(overrides) : null,
+      updated_at: db.fn.now(),
+    });
+    res.json(await db('products').where({ id: row.id }).first());
+  } catch (e) { next(e); }
+});
+
+adminRouter.patch('/categories/:id/override', async (req, res, next) => {
+  try {
+    const row = await db('categories').where({ id: req.params.id }).first();
+    if (!row) return res.status(404).json({ error: 'Не найдено' });
+    const overrides = mergeOverrides(row.field_overrides, req.body || {}, CATEGORY_OVERRIDABLE_FIELDS);
+    await db('categories').where({ id: row.id }).update({
+      field_overrides: Object.keys(overrides).length ? JSON.stringify(overrides) : null,
+      updated_at: db.fn.now(),
+    });
+    res.json(await db('categories').where({ id: row.id }).first());
   } catch (e) { next(e); }
 });
 

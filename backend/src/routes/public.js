@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { db } from '../db.js';
 import { getPublicSettings } from '../settings.js';
 import { createOrder } from '../services/orders.js';
+import { applyOverrides } from '../services/overrides.js';
 
 export const publicRouter = Router();
 
@@ -15,10 +16,14 @@ publicRouter.get('/settings', async (_req, res, next) => {
 // Меню: видимые категории с видимыми и доступными позициями
 publicRouter.get('/menu', async (_req, res, next) => {
   try {
-    const categories = await db('categories').where({ is_visible: true }).orderBy('sort_order');
-    const products = await db('products')
-      .where({ is_visible: true, is_available: true })
-      .orderBy('sort_order');
+    // sort_order может быть переопределён вручную — сортируем уже после
+    // applyOverrides, а не в SQL (иначе учтётся сырое значение из POS).
+    const categories = (await db('categories').where({ is_visible: true }))
+      .map(applyOverrides)
+      .sort((a, b) => a.sort_order - b.sort_order);
+    const products = (await db('products').where({ is_visible: true, is_available: true }))
+      .map(applyOverrides)
+      .sort((a, b) => a.sort_order - b.sort_order);
     const result = categories
       .map((c) => ({
         id: c.id,
