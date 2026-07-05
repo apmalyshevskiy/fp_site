@@ -7,6 +7,12 @@ const saving = ref(false);
 const message = ref('');
 const error = ref('');
 
+// Уведомления в MAX
+const maxChats = ref([]);
+const maxMessage = ref('');
+const maxError = ref('');
+const maxBusy = ref(false);
+
 onMounted(async () => {
   settings.value = await api.adminGetSettings();
 });
@@ -34,6 +40,46 @@ async function uploadTo(key, event) {
     settings.value[key] = url;
   } catch (e) {
     error.value = e.message;
+  }
+}
+
+// Определить чаты, куда добавлен бот. Сначала сохраняем настройки, чтобы
+// токен точно был записан, затем спрашиваем у MAX список чатов.
+async function maxDetectChats() {
+  maxMessage.value = '';
+  maxError.value = '';
+  maxChats.value = [];
+  maxBusy.value = true;
+  try {
+    await save();
+    const { chats } = await api.adminMaxChats();
+    maxChats.value = chats;
+    if (!chats.length) {
+      maxMessage.value = 'Бот пока не добавлен ни в один чат. Добавьте бота в чат персонала (или напишите ему) и повторите.';
+    }
+  } catch (e) {
+    maxError.value = e.message;
+  } finally {
+    maxBusy.value = false;
+  }
+}
+
+function pickChat(c) {
+  settings.value.max_chat_id = String(c.chatId);
+}
+
+async function maxTest() {
+  maxMessage.value = '';
+  maxError.value = '';
+  maxBusy.value = true;
+  try {
+    await save();
+    await api.adminMaxTest();
+    maxMessage.value = 'Тестовое сообщение отправлено — проверьте чат в MAX.';
+  } catch (e) {
+    maxError.value = e.message;
+  } finally {
+    maxBusy.value = false;
   }
 }
 </script>
@@ -92,6 +138,42 @@ async function uploadTo(key, event) {
           Токену нужны права: «Меню» — просмотр, «Внешние заказы» — изменение.
         </p>
       </section>
+
+      <section class="card block">
+        <h3>Уведомления в MAX</h3>
+        <label class="check">
+          <input type="checkbox" :checked="settings.max_enabled === 'true'" @change="settings.max_enabled = String($event.target.checked)" />
+          Присылать новые заказы в MAX
+        </label>
+        <label class="field"><span>Токен бота</span><input v-model="settings.max_bot_token" placeholder="Токен бота, созданного в MAX" /></label>
+        <label class="field"><span>ID чата</span><input v-model="settings.max_chat_id" placeholder="Заполняется кнопкой «Определить чат»" /></label>
+
+        <div class="max-actions">
+          <button class="btn-ghost btn-sm" type="button" :disabled="maxBusy" @click="maxDetectChats">Определить чат</button>
+          <button class="btn-ghost btn-sm" type="button" :disabled="maxBusy" @click="maxTest">Отправить тест</button>
+        </div>
+
+        <ul v-if="maxChats.length" class="chat-list">
+          <li v-for="c in maxChats" :key="c.chatId">
+            <button
+              class="btn-ghost btn-sm"
+              type="button"
+              :class="{ active: String(c.chatId) === String(settings.max_chat_id) }"
+              @click="pickChat(c)"
+            >
+              {{ c.title || 'Чат' }} · #{{ c.chatId }}
+            </button>
+          </li>
+        </ul>
+
+        <p v-if="maxMessage" class="badge green">{{ maxMessage }}</p>
+        <p v-if="maxError" class="error-text">{{ maxError }}</p>
+
+        <p class="muted" style="font-size: 13px;">
+          Создайте бота в MAX и получите токен, вставьте сюда и сохраните.
+          Добавьте бота в чат персонала, нажмите «Определить чат», выберите нужный чат и отправьте тест.
+        </p>
+      </section>
     </div>
   </div>
 
@@ -113,4 +195,7 @@ async function uploadTo(key, event) {
 .preview { height: 48px; width: 48px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); }
 .preview.wide { width: 96px; }
 .save-row { display: flex; align-items: center; gap: 14px; margin-top: 8px; }
+.max-actions { display: flex; gap: 10px; margin: 4px 0 12px; }
+.chat-list { list-style: none; padding: 0; margin: 0 0 12px; display: flex; flex-direction: column; gap: 6px; }
+.chat-list .active { border-color: var(--accent); color: var(--accent); font-weight: 700; }
 </style>

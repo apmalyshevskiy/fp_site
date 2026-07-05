@@ -9,6 +9,7 @@ import { getAllSettings, setSettings } from '../settings.js';
 import { syncMenu } from '../services/menuSync.js';
 import { pushOrderToPos } from '../services/orders.js';
 import { mergeOverrides, PRODUCT_OVERRIDABLE_FIELDS, CATEGORY_OVERRIDABLE_FIELDS } from '../services/overrides.js';
+import { fetchMaxChats, sendMaxMessage } from '../notifications/max.js';
 
 export const adminRouter = Router();
 
@@ -53,6 +54,32 @@ adminRouter.put('/settings', async (req, res, next) => {
     await setSettings(req.body || {});
     res.json(await getAllSettings());
   } catch (e) { next(e); }
+});
+
+// --- Уведомления в MAX ---
+// Чаты, где засветился бот — чтобы выбрать, куда слать уведомления.
+adminRouter.post('/max/chats', async (_req, res) => {
+  try {
+    const s = await getAllSettings();
+    if (!s.max_bot_token) return res.status(400).json({ error: 'Сначала сохраните токен бота MAX' });
+    res.json({ chats: await fetchMaxChats(s.max_bot_token) });
+  } catch (e) {
+    console.error(e);
+    res.status(502).json({ error: e.message });
+  }
+});
+
+// Тестовое сообщение в выбранный чат.
+adminRouter.post('/max/test', async (_req, res) => {
+  try {
+    const s = await getAllSettings();
+    if (!s.max_bot_token || !s.max_chat_id) return res.status(400).json({ error: 'Укажите токен и выберите чат' });
+    await sendMaxMessage(s.max_bot_token, s.max_chat_id, '✅ Тест: бот MAX подключён и будет присылать сюда новые заказы.');
+    res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    res.status(502).json({ error: e.message });
+  }
 });
 
 // --- Загрузка изображений (логотип, шапка, блюда) ---

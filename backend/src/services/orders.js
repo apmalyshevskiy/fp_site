@@ -1,6 +1,7 @@
 import { db } from '../db.js';
 import { getAllSettings } from '../settings.js';
 import { getPosDriver } from '../pos/index.js';
+import { notifyNewOrderMax } from '../notifications/max.js';
 
 /**
  * Создание заказа: валидация → пересчёт сумм по ценам из БД (не доверяем
@@ -96,6 +97,12 @@ export async function createOrder(input) {
   await pushOrderToPos(orderId);
 
   const order = await db('orders').where({ id: orderId }).first();
+
+  // Уведомление персоналу в MAX — независимо от POS и от того, открыта ли
+  // админка. Fire-and-forget: не задерживает ответ клиенту и не может сорвать
+  // оформление заказа (все ошибки глушатся внутри).
+  notifyNewOrderMax(order, orderItems).catch(() => {});
+
   return { publicId: order.public_id, total: Number(order.total), posStatus: order.pos_status };
 }
 

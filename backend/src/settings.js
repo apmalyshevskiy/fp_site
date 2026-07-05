@@ -1,7 +1,10 @@
 import { db } from './db.js';
 
 // Ключи, которые нельзя отдавать на публичный сайт
-const PRIVATE_KEYS = new Set(['fusionpos_token', 'fusionpos_base_url', 'pos_driver']);
+const PRIVATE_KEYS = new Set([
+  'fusionpos_token', 'fusionpos_base_url', 'pos_driver',
+  'max_bot_token', 'max_chat_id', 'max_enabled',
+]);
 
 export async function getAllSettings() {
   const rows = await db('settings').select('key', 'value');
