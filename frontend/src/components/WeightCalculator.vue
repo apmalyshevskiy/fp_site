@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, watch } from 'vue';
+import { formatPrice } from '../format.js';
 
 const props = defineProps({
   product: { type: Object, required: true },
@@ -7,57 +8,79 @@ const props = defineProps({
 });
 const emit = defineEmits(['close', 'confirm']);
 
-const step = computed(() => (Number(props.product.qtyStep) > 0 ? Number(props.product.qtyStep) : 0.5));
-const qty = ref(props.initialQty > 0 ? props.initialQty : step.value);
-
-watch(() => props.initialQty, (v) => { if (v > 0) qty.value = v; });
-
 const round3 = (n) => Math.round(n * 1000) / 1000;
-const sum = computed(() => Math.round(props.product.price * (Number(qty.value) || 0) * 100) / 100);
-const valid = computed(() => Number.isFinite(Number(qty.value)) && Number(qty.value) > 0 && Number(qty.value) <= 99);
+const fmt = (n) => round3(n).toString().replace('.', ',');
 
-function inc() { qty.value = round3(Math.min((Number(qty.value) || 0) + step.value, 99)); }
-function dec() { qty.value = round3(Math.max((Number(qty.value) || 0) - step.value, step.value)); }
-function onInput(e) {
-  const v = Number(String(e.target.value).replace(',', '.'));
-  qty.value = Number.isFinite(v) ? v : 0;
+const step = computed(() => (Number(props.product.qtyStep) > 0 ? Number(props.product.qtyStep) : 0.5));
+const display = ref(fmt(props.initialQty > 0 ? props.initialQty : step.value));
+
+watch(() => props.initialQty, (v) => { if (v > 0) display.value = fmt(v); });
+
+const qty = computed(() => {
+  const n = Number(display.value.replace(',', '.'));
+  return Number.isFinite(n) ? n : 0;
+});
+const sum = computed(() => Math.round(props.product.price * qty.value * 100) / 100);
+const valid = computed(() => qty.value > 0 && qty.value <= 99);
+
+const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', ',', '0', 'back'];
+
+function pressKey(k) {
+  if (k === 'back') return backspace();
+  if (k === ',') return pressComma();
+  return pressDigit(k);
+}
+function pressDigit(d) {
+  const next = display.value === '0' ? d : display.value + d;
+  if (next.replace(',', '.').length > 6) return;
+  const n = Number(next.replace(',', '.'));
+  if (!Number.isFinite(n) || n > 99) return;
+  display.value = next;
+}
+function pressComma() {
+  if (display.value.includes(',')) return;
+  display.value = display.value ? display.value + ',' : '0,';
+}
+function backspace() {
+  display.value = display.value.length > 1 ? display.value.slice(0, -1) : '0';
 }
 function confirm() {
   if (!valid.value) return;
-  emit('confirm', round3(Number(qty.value)));
+  emit('confirm', round3(qty.value));
 }
 </script>
 
 <template>
+  <Teleport to="body">
   <div class="overlay" @click.self="emit('close')">
-    <div class="modal card">
-      <button class="close" @click="emit('close')">✕</button>
+    <div class="modal">
       <h3 class="title">{{ product.name }}</h3>
-      <p class="muted price-line">{{ product.price }} ₽ за {{ product.unit }}</p>
+      <p class="price-line">{{ formatPrice(product.price) }} ₽ за {{ product.unit }}</p>
 
-      <div class="qty-row">
-        <button class="qty-btn" @click="dec">−</button>
-        <div class="input-wrap">
-          <input
-            type="text"
-            inputmode="decimal"
-            :value="qty"
-            @input="onInput"
-            @keyup.enter="confirm"
-          />
-          <span class="unit">{{ product.unit }}</span>
-        </div>
-        <button class="qty-btn" @click="inc">+</button>
+      <div class="qty-display">
+        <div class="label">Количество</div>
+        <div class="value">{{ display }} <span class="unit">{{ product.unit }}</span></div>
       </div>
 
-      <p v-if="!valid" class="error-text hint">Укажите количество от 0 до 99</p>
+      <div class="keypad">
+        <button v-for="k in keys" :key="k" class="key" :class="{ 'key-back': k === 'back' }" @click="pressKey(k)">
+          <span v-if="k !== 'back'">{{ k }}</span>
+          <span v-else>⌫</span>
+        </button>
+      </div>
 
-      <button class="btn add" :disabled="!valid" @click="confirm">
-        {{ initialQty > 0 ? 'Сохранить' : 'Добавить' }} · {{ sum }} ₽
-      </button>
+      <p v-if="!valid" class="hint">Укажите количество от 0 до 99</p>
+
+      <div class="actions">
+        <button class="cancel-btn" @click="emit('close')">Отмена</button>
+        <button class="btn add" :disabled="!valid" @click="confirm">
+          {{ initialQty > 0 ? 'Сохранить' : 'Продолжить' }} · {{ formatPrice(sum) }} ₽
+        </button>
+      </div>
       <button v-if="initialQty > 0" class="remove" @click="emit('confirm', 0)">Убрать из корзины</button>
     </div>
   </div>
+  </Teleport>
 </template>
 
 <style scoped>
@@ -72,54 +95,59 @@ function confirm() {
   padding: 16px;
 }
 .modal {
-  position: relative;
-  width: 340px;
+  width: 238px;
   max-width: 100%;
-  padding: 24px;
+  padding: 17px;
   text-align: center;
-}
-.close {
-  position: absolute;
-  top: 10px; right: 10px;
-  background: transparent;
-  font-size: 16px;
-  color: var(--muted);
-}
-.title { margin: 0 0 4px; }
-.price-line { margin: 0 0 18px; }
-.qty-row { display: flex; align-items: center; gap: 10px; }
-.qty-btn {
-  width: 44px; height: 44px;
-  flex-shrink: 0;
-  border-radius: 10px;
-  background: var(--accent);
+  background: #29241f;
   color: #fff;
-  font-size: 22px;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, .35);
 }
-.input-wrap { position: relative; flex: 1; }
-.input-wrap input {
-  text-align: center;
-  font-size: 20px;
-  font-weight: 700;
-  padding-right: 52px;
+.title { margin: 0 0 3px; color: #fff; font-size: 14px; }
+.price-line { margin: 0 0 11px; color: rgba(255, 255, 255, .55); font-size: 10px; }
+.qty-display { margin-bottom: 13px; }
+.qty-display .label { font-size: 9px; color: rgba(255, 255, 255, .55); margin-bottom: 3px; }
+.qty-display .value { font-size: 22px; font-weight: 700; color: var(--accent); }
+.qty-display .value .unit { font-size: 12px; font-weight: 600; color: rgba(255, 255, 255, .7); }
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 13px;
 }
-.unit {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--muted);
+.key {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: transparent;
+  border: 1.5px solid rgba(255, 255, 255, .25);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 500;
+  transition: background .15s;
+}
+.key:hover { background: rgba(255, 255, 255, .1); }
+.key-back { font-size: 13px; color: rgba(255, 255, 255, .75); }
+.hint { margin: 0 0 7px; color: #ff8a7a; font-size: 9px; }
+.actions { display: flex; gap: 7px; }
+.cancel-btn {
+  flex: 1;
+  padding: 9px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .08);
+  color: #fff;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 11px;
 }
-.hint { margin: 8px 0 0; }
-.add { width: 100%; margin-top: 16px; padding: 13px; font-size: 16px; }
+.cancel-btn:hover { background: rgba(255, 255, 255, .14); }
+.add { flex: 1; padding: 9px; border-radius: 9px; font-size: 11px; }
 .remove {
   width: 100%;
-  margin-top: 8px;
+  margin-top: 7px;
   background: transparent;
-  color: #c0392b;
+  color: #ff8a7a;
   font-weight: 600;
-  padding: 8px;
+  padding: 6px;
+  font-size: 10px;
 }
 </style>

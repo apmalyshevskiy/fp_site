@@ -1,19 +1,45 @@
 /**
- * Драйвер FUSIONPOS V4 (fusionpos.ru).
+ * Драйвер FUSIONPOS (fusionpos.ru), API v1.
+ * Спецификация: https://fusionpos.ru/api/
+ * (OpenAPI-схема: https://devfiles.fusionpos.ru/_swagger/api/v1.yaml —
+ * но реальный ответ местами шире задокументированного, например uuid
+ * у категорий там не описан, хотя реально возвращается).
  *
- * Интеграция строится на API-токене из Панели управления
- * (Настройки → API Токены), которому нужны права:
- *   - «Меню» — Просмотр (для загрузки меню)
- *   - «Внешние заказы» — Изменение (для передачи заказов с сайта)
+ * Базовый URL — домен вашего кабинета FUSIONPOS, например
+ * https://my-domain.fusionpos.ru (без /api/v1 — этот путь добавляется сам).
+ * Токену нужны права: «Меню» — просмотр.
  *
- * ВАЖНО: точная спецификация эндпоинтов выдаётся FUSIONPOS при подключении
- * опции «API (1С, сайты, боты)». Пути ниже (MENU_PATH / ORDERS_PATH) вынесены
- * в константы и легко корректируются под реальную документацию, как и
- * функции маппинга ответа (mapMenuResponse / buildOrderPayload).
+ * Категории и позиции отдают оба идентификатора (id и uuid) — синк хранит
+ * оба, сопоставление идёт по любому из них (см. menuSync.js).
+ *
+ * С expand=nomenclature позиция приходит с описанием и КБЖУ из связанной
+ * номенклатуры — используем их для description/compound/allergens/БЖУ.
+ *
+ * Пока реализована только загрузка меню (категории + позиции), как и
+ * договаривались. Публичная спецификация API v1 не описывает эндпоинт
+ * отправки внешних заказов — sendOrder() ниже оставлен заготовкой на
+ * будущее и ожидаемо не сработает, пока FUSIONPOS не даст точный путь.
  */
 
-const MENU_PATH = '/api/v4/menu';
-const ORDERS_PATH = '/api/v4/external-orders';
+const MENU_CATEGORIES_PATH = '/api/v1/menu-categories';
+const MENUS_PATH = '/api/v1/menus';
+const ORDERS_PATH = '/api/v1/external-orders';
+
+// Схема MeasurementUnitId в спецификации перечисляет подписи по порядку
+// (1 Milliliter … 8 Portion); точное числовое соответствие для конкретного
+// кабинета можно проверить в панели FUSIONPOS. Единицу измерения позиции
+// всегда можно поправить вручную в разделе «Меню» — при повторном синке
+// это значение не перезатирается.
+const MEASUREMENT_UNIT_LABELS = {
+  1: 'мл',
+  2: 'л',
+  3: 'мг',
+  4: 'г',
+  5: 'кг',
+  6: 'уп',
+  7: 'шт',
+  8: 'порция',
+};
 
 export class FusionPosDriver {
   constructor({ baseUrl, token }) {
@@ -24,15 +50,21 @@ export class FusionPosDriver {
     this.token = token;
   }
 
-  async #request(method, path, body) {
-    const res = await fetch(this.baseUrl + path, {
-      method,
-      headers: {
-        Authorization: `Bearer ${this.token}`,
-        'Content-Type': 'application/json',
-      },
-      body: body ? JSON.stringify(body) : undefined,
-    });
+  async #request(method, path, { query, body } = {}) {
+    const qs = query ? `?${new URLSearchParams(query)}` : '';
+    let res;
+    try {
+      res = await fetch(this.baseUrl + path + qs, {
+        method,
+        headers: {
+          Authorization: `Bearer ${this.token}`,
+          'Content-Type': 'application/json',
+        },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+    } catch (e) {
+      throw new Error(`FUSIONPOS ${method} ${path}: ${e.cause?.message || e.message}`);
+    }
     if (!res.ok) {
       const text = await res.text().catch(() => '');
       throw new Error(`FUSIONPOS ${method} ${path}: HTTP ${res.status} ${text.slice(0, 500)}`);
@@ -41,43 +73,68 @@ export class FusionPosDriver {
   }
 
   async fetchMenu() {
-    const data = await this.#request('GET', MENU_PATH);
-    return mapMenuResponse(data);
+    const [categoriesRes, menusRes] = await Promise.all([
+      this.#request('GET', MENU_CATEGORIES_PATH, { query: { pagination: 'false', is_deleted: 'false' } }),
+      this.#request('GET', MENUS_PATH, {
+        query: {
+          pagination: 'false',
+          is_deleted: 'false',
+          available_external_orders: 'true',
+          expand: 'nomenclature',
+        },
+      }),
+    ]);
+    return mapMenuResponse(categoriesRes.items ?? [], menusRes.items ?? []);
   }
 
   async sendOrder(order) {
     const payload = buildOrderPayload(order);
-    const data = await this.#request('POST', ORDERS_PATH, payload);
+    const data = await this.#request('POST', ORDERS_PATH, { body: payload });
     return { externalId: String(data.id ?? data.orderId ?? '') };
   }
 }
 
-// Маппинг ответа FUSIONPOS в наш внутренний формат меню.
-// Скорректировать поля по реальной спецификации API.
-function mapMenuResponse(data) {
-  const categories = (data.categories ?? []).map((c, i) => ({
+// Поле может лежать прямо на позиции или во вложенном nomenclature
+// (expand=nomenclature) — точная форма не описана в публичной спецификации,
+// поэтому проверяем оба варианта.
+function nomField(p, field) {
+  const v = p.nomenclature?.[field] ?? p[field];
+  return v === undefined ? null : v;
+}
+
+// Маппинг ответа FUSIONPOS (/menu-categories, /menus) в наш внутренний формат меню.
+function mapMenuResponse(categoriesRaw, productsRaw) {
+  const categories = categoriesRaw.map((c) => ({
     externalId: String(c.id),
+    externalUuid: c.uuid || null,
     name: c.name,
-    sortOrder: c.sortOrder ?? i,
+    sortOrder: c.sort_position ?? 0,
   }));
-  const products = (data.items ?? data.products ?? []).map((p, i) => ({
+  const products = productsRaw.map((p) => ({
     externalId: String(p.id),
-    categoryExternalId: p.categoryId != null ? String(p.categoryId) : null,
+    externalUuid: p.uuid || null,
+    categoryExternalId: p.category_id != null ? String(p.category_id) : null,
     name: p.name,
-    description: p.description ?? '',
-    price: Number(p.price ?? 0),
-    isAvailable: p.inStopList != null ? !p.inStopList : (p.isAvailable ?? true),
-    sortOrder: p.sortOrder ?? i,
-    unit: p.unit ?? p.measureUnit ?? undefined, // применяется только к новым позициям
-    qtyStep: p.qtyStep ?? undefined,
-    isWeight: p.isWeight ?? p.isWeighted ?? undefined,
-    weightLabel: p.weight ?? p.portionWeight ?? undefined,
+    description: nomField(p, 'description') || '',
+    compound: nomField(p, 'compound'),
+    allergens: nomField(p, 'allergens'),
+    protein: nomField(p, 'protein'),
+    fat: nomField(p, 'fat'),
+    carbohydrate: nomField(p, 'carbohydrate'),
+    kilocalories: nomField(p, 'kilocalories'),
+    imageUrl: p.image_url || null,
+    price: Math.round(Number(p.price) || 0) / 100, // цена у FUSIONPOS — в копейках
+    isAvailable: p.is_active !== false && !p.is_stopped,
+    sortOrder: p.sort_position ?? 0,
+    unit: p.is_bulk ? (MEASUREMENT_UNIT_LABELS[p.measurement_unit_id] || 'кг') : undefined,
+    qtyStep: p.is_bulk ? (Number(p.weight_quantum) > 0 ? Number(p.weight_quantum) : 0.1) : undefined,
+    isWeight: !!p.is_bulk,
   }));
   return { categories, products };
 }
 
 // Формирование тела внешнего заказа для FUSIONPOS.
-// Скорректировать поля по реальной спецификации API.
+// Не подтверждено реальной спецификацией — скорректировать, когда появится точный эндпоинт.
 function buildOrderPayload(order) {
   return {
     externalNumber: order.public_id,

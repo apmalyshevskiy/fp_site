@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { api } from '../api.js';
 import ProductCard from '../components/ProductCard.vue';
 import CartBar from '../components/CartBar.vue';
@@ -8,12 +8,12 @@ import CartSidebar from '../components/CartSidebar.vue';
 const menu = ref([]);
 const loading = ref(true);
 const error = ref('');
-const activeCategory = ref(null);
+const activeCategory = ref('all');
+const search = ref('');
 
 onMounted(async () => {
   try {
     menu.value = await api.getMenu();
-    activeCategory.value = menu.value[0]?.id ?? null;
   } catch (e) {
     error.value = e.message;
   } finally {
@@ -21,9 +21,29 @@ onMounted(async () => {
   }
 });
 
-function scrollToCategory(id) {
+const searchedMenu = computed(() => {
+  const q = search.value.trim().toLowerCase();
+  if (!q) return menu.value;
+  return menu.value
+    .map((cat) => ({
+      ...cat,
+      products: cat.products.filter(
+        (p) => p.name.toLowerCase().includes(q) || String(p.price).includes(q)
+      ),
+    }))
+    .filter((cat) => cat.products.length > 0);
+});
+
+// Категория "Все" показывает все секции; выбор конкретной категории
+// фильтрует список, а не просто прокручивает к ней.
+const visibleMenu = computed(() => {
+  if (activeCategory.value === 'all') return searchedMenu.value;
+  return searchedMenu.value.filter((cat) => cat.id === activeCategory.value);
+});
+
+function selectCategory(id) {
   activeCategory.value = id;
-  document.getElementById(`cat-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 </script>
 
@@ -35,19 +55,35 @@ function scrollToCategory(id) {
   <template v-else>
     <div class="menu-layout">
       <div class="menu-main">
+        <input
+          v-model="search"
+          type="text"
+          class="search-input"
+          placeholder="Поиск по названию или цене…"
+        />
+
         <nav class="cat-nav">
+          <button
+            class="cat-chip"
+            :class="{ active: activeCategory === 'all' }"
+            @click="selectCategory('all')"
+          >
+            Все
+          </button>
           <button
             v-for="cat in menu"
             :key="cat.id"
             class="cat-chip"
             :class="{ active: activeCategory === cat.id }"
-            @click="scrollToCategory(cat.id)"
+            @click="selectCategory(cat.id)"
           >
             {{ cat.name }}
           </button>
         </nav>
 
-        <section v-for="cat in menu" :key="cat.id" :id="`cat-${cat.id}`" class="cat-section">
+        <p v-if="!visibleMenu.length" class="muted">Ничего не найдено</p>
+
+        <section v-for="cat in visibleMenu" :key="cat.id" class="cat-section">
           <h2>{{ cat.name }}</h2>
           <div class="grid">
             <ProductCard v-for="p in cat.products" :key="p.id" :product="p" />
@@ -71,6 +107,7 @@ function scrollToCategory(id) {
   align-items: start;
 }
 .menu-main { min-width: 0; }
+.search-input { margin-bottom: 12px; }
 @media (max-width: 900px) {
   .menu-layout { grid-template-columns: 1fr; }
   .desktop-cart { display: none; }
@@ -96,10 +133,9 @@ function scrollToCategory(id) {
   font-weight: 600;
 }
 .cat-chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
-.cat-section { scroll-margin-top: 70px; }
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(191px, 1fr));
-  gap: 13px;
+  grid-template-columns: repeat(auto-fill, minmax(201px, 1fr));
+  gap: 14px;
 }
 </style>

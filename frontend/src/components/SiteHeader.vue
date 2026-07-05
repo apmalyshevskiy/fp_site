@@ -56,14 +56,20 @@ const cart = useCartStore();
 .contacts { text-align: right; }
 .phone { font-weight: 700; }
 .hours { font-size: 12px; }
-.cart-btn { position: relative; }
+.cart-btn { position: relative; display: inline-flex; align-items: center; gap: 8px; }
 .cart-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
   background: #fff;
   color: var(--accent);
-  border-radius: 20px;
-  padding: 0 7px;
-  margin-left: 8px;
-  font-size: 13px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
 }
 .hero {
   height: 220px;

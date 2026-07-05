@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import { useCartStore } from '../stores/cart.js';
+import { formatPrice } from '../format.js';
 import WeightCalculator from './WeightCalculator.vue';
 
 const props = defineProps({ product: { type: Object, required: true } });
@@ -13,6 +14,16 @@ const inCartQty = computed(() => cart.qtyOf(props.product.id));
 const qtyLabel = computed(() =>
   isPiece.value ? inCartQty.value : `${inCartQty.value} ${props.product.unit}`
 );
+const nutritionLine = computed(() => {
+  const p = props.product;
+  const parts = [];
+  if (p.kilocalories != null) parts.push(`${p.kilocalories} ккал`);
+  if (p.protein != null || p.fat != null || p.carbohydrate != null) {
+    const fmt = (v) => (v != null ? v : '—');
+    parts.push(`Б/Ж/У ${fmt(p.protein)}/${fmt(p.fat)}/${fmt(p.carbohydrate)}`);
+  }
+  return parts.join(' · ');
+});
 
 function onAddClick() {
   if (isWeight.value) showCalc.value = true;
@@ -37,8 +48,11 @@ function onCalcConfirm(qty) {
       <h3 class="name">{{ product.name }}</h3>
       <p v-if="product.weightLabel" class="weight muted">{{ product.weightLabel }}</p>
       <p v-if="product.description" class="desc muted">{{ product.description }}</p>
+      <p v-if="product.compound" class="compound muted">Состав: {{ product.compound }}</p>
+      <p v-if="nutritionLine" class="nutrition muted">{{ nutritionLine }}</p>
+      <p v-if="product.allergens" class="allergens muted">Аллергены: {{ product.allergens }}</p>
       <div class="bottom">
-        <span class="price">{{ product.price }} ₽<span v-if="!isPiece" class="per-unit">/{{ product.unit }}</span></span>
+        <span class="price">{{ formatPrice(product.price) }} ₽<span v-if="!isPiece" class="per-unit">/{{ product.unit }}</span></span>
 
         <!-- Весовой товар: количество открывает калькулятор -->
         <button v-if="isWeight && inCartQty" class="qty-pill" @click="showCalc = true">
@@ -52,7 +66,7 @@ function onCalcConfirm(qty) {
           <button class="qty-btn" @click="cart.add(product)">+</button>
         </div>
 
-        <button v-else class="btn btn-sm" @click="onAddClick">Заказать</button>
+        <button v-else class="add-btn" @click="onAddClick">+</button>
       </div>
     </div>
 
@@ -89,9 +103,9 @@ function onCalcConfirm(qty) {
   justify-content: center;
   background: rgba(0, 0, 0, .4);
   color: #fff;
-  font-size: 40px;
-  font-weight: 800;
-  text-shadow: 0 2px 10px rgba(0,0,0,.55);
+  font-size: 66px;
+  font-weight: 400;
+  text-shadow: 0 2px 10px rgba(0,0,0,.65);
   pointer-events: none;
 }
 .weight { margin: -3px 0 6px; font-size: 13px; }
@@ -101,20 +115,22 @@ function onCalcConfirm(qty) {
   display: flex; align-items: center; justify-content: center;
   font-size: 34px; opacity: .4;
 }
-.body { padding: 11px; display: flex; flex-direction: column; flex: 1; }
-.name { margin: 0 0 6px; font-size: 18px; font-weight: 700; letter-spacing: -.1px; }
-.desc { margin: 0 0 8px; font-size: 14px; flex: 1; }
+.body { padding: 12px; display: flex; flex-direction: column; flex: 1; }
+.name { margin: 0 0 6px; font-size: 19px; font-weight: 700; letter-spacing: -.1px; }
+.desc { margin: 0 0 8px; font-size: 15px; flex: 1; }
+.compound, .nutrition, .allergens { margin: 0 0 6px; font-size: 12px; line-height: 1.3; }
+.allergens { color: #b35309; }
 .bottom { display: flex; align-items: center; justify-content: space-between; margin-top: auto; }
-.price { font-weight: 800; font-size: 18px; }
-.per-unit { font-weight: 600; font-size: 13px; color: var(--muted); }
-.qty { display: flex; align-items: center; gap: 8px; font-weight: 700; }
-.qty-label { white-space: nowrap; font-size: 14px; }
+.price { font-weight: 800; font-size: 20px; }
+.per-unit { font-weight: 600; font-size: 14px; color: var(--muted); }
+.qty { display: flex; align-items: center; gap: 10px; font-weight: 500; }
+.qty-label { white-space: nowrap; font-size: 18px; }
 .qty-btn {
-  width: 29px; height: 29px;
-  border-radius: 9px;
+  width: 36px; height: 36px;
+  border-radius: 11px;
   background: var(--accent);
   color: #fff;
-  font-size: 19px;
+  font-size: 24px;
   line-height: 1;
 }
 .qty-pill {
@@ -126,5 +142,20 @@ function onCalcConfirm(qty) {
   font-size: 14px;
   white-space: nowrap;
 }
-.bottom .btn-sm { padding: 6px 11px; font-size: 14px; border-radius: 11px; }
+.add-btn {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 26px;
+  font-weight: 400;
+  line-height: 1;
+  transition: filter .15s;
+}
+.add-btn:hover { filter: brightness(1.08); }
 </style>

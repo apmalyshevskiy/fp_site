@@ -1,25 +1,11 @@
 <script setup>
-import { onMounted, onUnmounted, ref } from 'vue';
+import { computed } from 'vue';
 import { api } from '../../api.js';
+import { useAdminOrdersStore } from '../../stores/adminOrders.js';
 
-const orders = ref([]);
-const error = ref('');
-let timer;
-
-async function load() {
-  try {
-    orders.value = await api.adminGetOrders();
-    error.value = '';
-  } catch (e) {
-    error.value = e.message;
-  }
-}
-
-onMounted(() => {
-  load();
-  timer = setInterval(load, 15000);
-});
-onUnmounted(() => clearInterval(timer));
+const ordersStore = useAdminOrdersStore();
+const orders = computed(() => ordersStore.orders);
+const error = computed(() => ordersStore.error);
 
 async function setStatus(order, status) {
   const updated = await api.adminPatchOrder(order.id, { status });
@@ -32,6 +18,7 @@ async function resend(order) {
 }
 
 const STATUS_LABELS = { new: 'Новый', accepted: 'Принят', done: 'Выполнен', cancelled: 'Отменён' };
+const STATUS_COLORS = { new: '#e8590c', accepted: '#2f6fed', done: '#157347', cancelled: '#a39a8f' };
 const POS_LABELS = { pending: 'в очереди', sent: 'отправлен в POS', error: 'ошибка отправки' };
 
 function fmtDate(d) {
@@ -44,7 +31,7 @@ function fmtDate(d) {
   <p v-if="error" class="error-text">{{ error }}</p>
   <p v-if="!orders.length" class="muted">Заказов пока нет.</p>
 
-  <article v-for="o in orders" :key="o.id" class="card order">
+  <article v-for="o in orders" :key="o.id" class="card order" :style="{ borderLeftColor: STATUS_COLORS[o.status] }">
     <header class="order-head">
       <div>
         <strong>№ {{ o.public_id }}</strong>
@@ -56,7 +43,12 @@ function fmtDate(d) {
           {{ POS_LABELS[o.pos_status] }}
         </span>
       </div>
-      <select :value="o.status" @change="setStatus(o, $event.target.value)">
+      <select
+        class="status-select"
+        :style="{ color: STATUS_COLORS[o.status] }"
+        :value="o.status"
+        @change="setStatus(o, $event.target.value)"
+      >
         <option v-for="(label, value) in STATUS_LABELS" :key="value" :value="value">{{ label }}</option>
       </select>
     </header>
@@ -84,12 +76,29 @@ function fmtDate(d) {
 </template>
 
 <style scoped>
-.order { padding: 16px 18px; margin-bottom: 14px; }
+h1 { margin-bottom: 20px; }
+.order {
+  padding: 18px 20px;
+  margin-bottom: 14px;
+  border-radius: 16px;
+  border-left: 4px solid transparent;
+  box-shadow: 0 2px 10px rgba(31, 26, 23, .05);
+  transition: box-shadow .15s, transform .15s;
+}
+.order:hover { box-shadow: 0 8px 22px rgba(31, 26, 23, .1); transform: translateY(-1px); }
 .order-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
-.order-head select { width: auto; }
-.order-body { display: flex; justify-content: space-between; gap: 20px; margin-top: 10px; flex-wrap: wrap; }
+.status-select {
+  width: auto;
+  padding: 7px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  font-weight: 700;
+  font-size: 13px;
+}
+.order-body { display: flex; justify-content: space-between; gap: 20px; margin-top: 12px; flex-wrap: wrap; }
 .items { text-align: right; font-size: 14px; }
 .item-line { padding: 2px 0; }
-.item-line.total { font-weight: 800; border-top: 1px solid var(--border); margin-top: 4px; padding-top: 6px; }
+.item-line.total { font-weight: 800; font-size: 15px; border-top: 1px solid var(--border); margin-top: 6px; padding-top: 8px; }
 .pos-err { margin-top: 8px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 </style>

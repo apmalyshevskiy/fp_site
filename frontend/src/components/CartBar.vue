@@ -1,5 +1,6 @@
 <script setup>
 import { useCartStore } from '../stores/cart.js';
+import { formatPrice } from '../format.js';
 const cart = useCartStore();
 </script>
 
@@ -7,7 +8,7 @@ const cart = useCartStore();
   <transition name="slide">
     <div v-if="cart.count" class="cart-bar">
       <router-link to="/checkout" class="cart-bar-inner">
-        <span>{{ cart.count }} поз. · {{ cart.total }} ₽</span>
+        <span>{{ cart.count }} поз. · {{ formatPrice(cart.total) }} ₽</span>
         <span class="go">Оформить заказ →</span>
       </router-link>
     </div>

@@ -64,11 +64,16 @@ adminRouter.post('/upload', (req, res) => {
 });
 
 // --- Меню ---
-adminRouter.post('/menu/sync', async (_req, res, next) => {
+adminRouter.post('/menu/sync', async (_req, res) => {
   try {
     const stats = await syncMenu();
     res.json({ ok: true, ...stats });
-  } catch (e) { next(e); }
+  } catch (e) {
+    // Ошибка синка POS — обычно неверный URL/токен или недоступный сервер FUSIONPOS;
+    // отдаём причину как есть, а не общее «внутренняя ошибка», чтобы админ мог её исправить.
+    console.error(e);
+    res.status(502).json({ error: e.message });
+  }
 });
 
 adminRouter.get('/menu', async (_req, res, next) => {

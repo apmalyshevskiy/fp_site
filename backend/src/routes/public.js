@@ -35,6 +35,12 @@ publicRouter.get('/menu', async (_req, res, next) => {
             qtyStep: Number(p.qty_step) || 1,
             isWeight: !!p.is_weight,
             weightLabel: p.weight_label || null,
+            compound: p.compound || null,
+            allergens: p.allergens || null,
+            protein: p.protein != null ? Number(p.protein) : null,
+            fat: p.fat != null ? Number(p.fat) : null,
+            carbohydrate: p.carbohydrate != null ? Number(p.carbohydrate) : null,
+            kilocalories: p.kilocalories != null ? Number(p.kilocalories) : null,
           })),
       }))
       .filter((c) => c.products.length > 0);

@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import { useCartStore } from '../stores/cart.js';
 import { useSiteStore } from '../stores/site.js';
 import { api } from '../api.js';
+import { formatPrice } from '../format.js';
 
 const cart = useCartStore();
 const site = useSiteStore();
@@ -23,6 +24,7 @@ const deliveryFee = computed(() => {
   return site.deliveryFee;
 });
 const total = computed(() => cart.total + deliveryFee.value);
+const lineTotal = (item) => Math.round(item.price * item.qty * 100) / 100;
 const belowMin = computed(
   () => type.value === 'delivery' && site.deliveryMinOrder > 0 && cart.total < site.deliveryMinOrder
 );
@@ -85,52 +87,54 @@ async function submit() {
       </label>
 
       <p v-if="belowMin" class="error-text">
-        Минимальная сумма заказа на доставку — {{ site.deliveryMinOrder }} ₽
+        Минимальная сумма заказа на доставку — {{ formatPrice(site.deliveryMinOrder) }} ₽
       </p>
       <p v-if="error" class="error-text">{{ error }}</p>
 
       <button class="btn submit" :disabled="submitting || belowMin">
-        {{ submitting ? 'Отправляем…' : `Заказать за ${total} ₽` }}
+        {{ submitting ? 'Отправляем…' : `Заказать за ${formatPrice(total)} ₽` }}
       </button>
     </form>
 
     <aside class="card summary">
       <h3>Ваш заказ</h3>
       <div v-for="item in cart.list" :key="item.id" class="line">
-        <div class="line-info">
-          <span>{{ item.name }}</span>
-          <span class="muted">{{ item.price }} ₽ × {{ item.qty }}{{ item.unit && item.unit !== 'шт' ? ` ${item.unit}` : '' }}</span>
+        <div class="line-top">
+          <span class="line-name">{{ item.name }}</span>
+          <div class="qty">
+            <button class="qty-btn" @click="cart.remove(item.id)">−</button>
+            <input
+              class="qty-input"
+              type="text"
+              inputmode="decimal"
+              :value="item.qty"
+              @change="cart.setQty(item.id, $event.target.value)"
+            />
+            <button class="qty-btn" @click="cart.add(item)">+</button>
+          </div>
         </div>
-        <div class="qty">
-          <button class="qty-btn" @click="cart.remove(item.id)">−</button>
-          <input
-            class="qty-input"
-            type="number"
-            :value="item.qty"
-            :step="item.step || 1"
-            min="0"
-            max="99"
-            @change="cart.setQty(item.id, $event.target.value)"
-          />
-          <button class="qty-btn" @click="cart.add(item)">+</button>
+        <div class="line-bottom">
+          <span class="muted">{{ formatPrice(item.price) }} ₽ × {{ item.qty }}{{ item.unit && item.unit !== 'шт' ? ` ${item.unit}` : '' }}</span>
+          <span class="line-total">{{ formatPrice(lineTotal(item)) }} ₽</span>
         </div>
       </div>
       <hr />
-      <div class="row"><span>Сумма</span><span>{{ cart.total }} ₽</span></div>
+      <div class="row"><span>Сумма</span><span>{{ formatPrice(cart.total) }} ₽</span></div>
       <div class="row" v-if="type === 'delivery'">
         <span>Доставка</span>
-        <span>{{ deliveryFee ? `${deliveryFee} ₽` : 'бесплатно' }}</span>
+        <span>{{ deliveryFee ? `${formatPrice(deliveryFee)} ₽` : 'бесплатно' }}</span>
       </div>
-      <div class="row total"><span>Итого</span><span>{{ total }} ₽</span></div>
+      <div class="row total"><span>Итого</span><span>{{ formatPrice(total) }} ₽</span></div>
     </aside>
   </div>
 </template>
 
 <style scoped>
-.layout { display: grid; grid-template-columns: 1fr 340px; gap: 20px; align-items: start; }
+.layout { display: grid; grid-template-columns: 1fr 425px; gap: 20px; align-items: start; }
 @media (max-width: 800px) { .layout { grid-template-columns: 1fr; } }
 .form { padding: 22px; }
-.summary { padding: 22px; }
+.summary { padding: 28px; }
+.summary h3 { font-size: 23px; }
 .type-switch { display: flex; gap: 8px; margin-bottom: 18px; }
 .type-switch button {
   flex: 1;
@@ -143,19 +147,21 @@ async function submit() {
 .type-switch button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 .pickup-info { margin-top: 0; }
 .submit { width: 100%; padding: 14px; font-size: 16px; margin-top: 6px; }
-.line { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 0; }
-.line-info { display: flex; flex-direction: column; font-size: 14px; }
-.qty { display: flex; align-items: center; gap: 8px; font-weight: 700; }
-.qty-btn { width: 26px; height: 26px; border-radius: 7px; background: var(--accent); color: #fff; }
+.line { padding: 10px 0; border-bottom: 1px solid var(--border); }
+.line-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.line-name { font-size: 18px; font-weight: 600; }
+.line-bottom { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 14px; margin-top: 4px; }
+.line-total { font-weight: 800; font-size: 18px; white-space: nowrap; }
+.qty { display: flex; align-items: center; gap: 8px; font-weight: 700; flex-shrink: 0; }
+.qty-btn { width: 33px; height: 33px; border-radius: 9px; background: var(--accent); color: #fff; }
 .qty-input {
-  width: 62px;
-  padding: 4px 6px;
+  width: 78px;
+  padding: 5px 7px;
   text-align: center;
   font-weight: 700;
-  -moz-appearance: textfield;
+  font-size: 16px;
 }
-.qty-input::-webkit-outer-spin-button, .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
-.row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 15px; }
-.row.total { font-weight: 800; font-size: 17px; margin-top: 6px; }
+.row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 19px; }
+.row.total { font-weight: 800; font-size: 21px; margin-top: 6px; }
 </style>
