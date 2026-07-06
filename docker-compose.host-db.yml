@@ -1,0 +1,39 @@
+# Альтернативная прод-конфигурация: приложение в Docker, а БД — существующая
+# MariaDB на ХОСТЕ (контейнер db НЕ запускается, вторая СУБД не поднимается).
+#
+# Приложение обращается к хостовой MariaDB через host.docker.internal —
+# это адрес шлюза Docker к хосту (extra_hosts: host-gateway).
+#
+# ВАЖНО: требуется настройка MariaDB на хосте (см. DEPLOY.md → «Вариант Б»):
+#  - bind-address, доступный из контейнера (обычно адрес docker-моста или 0.0.0.0);
+#  - пользователь БД с доступом из подсети контейнеров (напр. 'fp'@'172.%');
+#  - база данных и пользователь создаются заранее (миграции создадут только таблицы);
+#  - firewall: 3306 не должен торчать в интернет.
+#
+# app слушает только на 127.0.0.1:8080 — публичный доступ и TLS даёт системный
+# nginx (deploy/nginx/fp_site.conf). Секреты — из .env (см. .env.host-db.example).
+services:
+  app:
+    build: .
+    restart: always
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      PORT: 3000
+      # По умолчанию — хост через шлюз Docker. Можно переопределить в .env
+      # (напр. на адрес docker-моста 172.17.0.1 или на внешний хост DBaaS).
+      DB_HOST: ${DB_HOST:-host.docker.internal}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER:-fp}
+      DB_PASSWORD: ${DB_PASSWORD:?Задайте DB_PASSWORD в .env}
+      DB_NAME: ${DB_NAME:-fp_site}
+      JWT_SECRET: ${JWT_SECRET:?Задайте JWT_SECRET в .env}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?Задайте ADMIN_EMAIL в .env}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Задайте ADMIN_PASSWORD в .env}
+      POS_DRIVER: ${POS_DRIVER:-mock}
+      FUSIONPOS_BASE_URL: ${FUSIONPOS_BASE_URL:-}
+      FUSIONPOS_TOKEN: ${FUSIONPOS_TOKEN:-}
+    volumes:
+      - ./uploads:/data/uploads
+    ports:
+      - "127.0.0.1:${APP_PORT:-8080}:3000"

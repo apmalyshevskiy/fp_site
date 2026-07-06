@@ -1,0 +1,57 @@
+# Продакшн-конфигурация инстанса (один ресторан = один сервер).
+# Весь стек в Docker: app + MariaDB.
+#
+# Отличия от dev-файла (docker-compose.yml):
+#  - БД НЕ публикуется на хост (нет ports у db): app ходит к ней по внутренней
+#    сети Docker (DB_HOST=db). Это снимает конфликт с уже установленной на
+#    хосте MariaDB на порту 3306 и не выставляет БД наружу.
+#  - app слушает только на 127.0.0.1 — наружу его отдаёт системный nginx с TLS
+#    (см. deploy/nginx/fp_site.conf).
+#  - restart: always и обязательные секреты (${VAR:?} — старт упадёт, если не заданы).
+#
+# Секреты берутся из .env рядом с этим файлом (см. .env.production.example).
+services:
+  db:
+    image: mariadb:11
+    restart: always
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Задайте DB_ROOT_PASSWORD в .env}
+      MARIADB_DATABASE: ${DB_NAME:-fp_site}
+      MARIADB_USER: ${DB_USER:-fp}
+      MARIADB_PASSWORD: ${DB_PASSWORD:?Задайте DB_PASSWORD в .env}
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 3000
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-fp}
+      DB_PASSWORD: ${DB_PASSWORD:?Задайте DB_PASSWORD в .env}
+      DB_NAME: ${DB_NAME:-fp_site}
+      JWT_SECRET: ${JWT_SECRET:?Задайте JWT_SECRET в .env}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:?Задайте ADMIN_EMAIL в .env}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Задайте ADMIN_PASSWORD в .env}
+      POS_DRIVER: ${POS_DRIVER:-mock}
+      FUSIONPOS_BASE_URL: ${FUSIONPOS_BASE_URL:-}
+      FUSIONPOS_TOKEN: ${FUSIONPOS_TOKEN:-}
+    volumes:
+      # Загрузки (картинки блюд/логотип) — на хосте в ./uploads, чтобы их было
+      # легко бэкапить и они переживали пересоздание контейнера.
+      - ./uploads:/data/uploads
+    ports:
+      - "127.0.0.1:${APP_PORT:-8080}:3000"
+
+volumes:
+  db_data:
