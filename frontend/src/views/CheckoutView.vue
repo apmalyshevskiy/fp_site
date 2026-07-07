@@ -41,6 +41,13 @@ async function submit() {
       comment: comment.value,
       items: cart.list.map((i) => ({ productId: i.id, qty: i.qty })),
     });
+    // Онлайн-оплата: уходим на страницу оплаты ЮKassa. Корзину НЕ чистим здесь —
+    // если оплату не завершат, заказ останется в корзине; очистим на странице
+    // «Заказ принят» после подтверждения оплаты.
+    if (result.confirmationUrl) {
+      window.location.href = result.confirmationUrl;
+      return;
+    }
     cart.clear();
     router.push(`/order/${result.publicId}`);
   } catch (e) {

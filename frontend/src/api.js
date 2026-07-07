@@ -28,6 +28,7 @@ export const api = {
   getSettings: () => request('GET', '/api/settings'),
   getMenu: () => request('GET', '/api/menu'),
   createOrder: (order) => request('POST', '/api/orders', order),
+  getOrderStatus: (publicId) => request('GET', `/api/orders/${publicId}/status`),
   // admin
   login: (email, password) => request('POST', '/api/admin/login', { email, password }),
   adminGetSettings: () => request('GET', '/api/admin/settings', undefined, { auth: true }),

@@ -2,14 +2,18 @@ import { db } from '../db.js';
 import { getAllSettings } from '../settings.js';
 import { getPosDriver } from '../pos/index.js';
 import { notifyNewOrderMax } from '../notifications/max.js';
+import { getPaymentDriver } from '../payments/index.js';
+import { createPaymentForOrder } from './payments.js';
 
 /**
  * Создание заказа: валидация → пересчёт сумм по ценам из БД (не доверяем
- * ценам с фронта) → сохранение → попытка отправки в POS.
- * Если POS недоступен, заказ сохраняется со статусом pos_status=error,
- * его можно переотправить из админки.
+ * ценам с фронта) → сохранение.
+ * Если подключена онлайн-оплата — создаём платёж и возвращаем ссылку на оплату;
+ * заказ уходит в POS/MAX только после подтверждения оплаты (см. finalizeOrder,
+ * вызывается из вебхука в services/payments.js). Если оплата не подключена —
+ * заказ сразу отправляется в POS и уведомление в MAX (оплата при получении).
  */
-export async function createOrder(input) {
+export async function createOrder(input, { baseUrl } = {}) {
   const settings = await getAllSettings();
 
   const type = input.type;
@@ -94,16 +98,32 @@ export async function createOrder(input) {
     return id;
   });
 
-  await pushOrderToPos(orderId);
-
   const order = await db('orders').where({ id: orderId }).first();
 
-  // Уведомление персоналу в MAX — независимо от POS и от того, открыта ли
-  // админка. Fire-and-forget: не задерживает ответ клиенту и не может сорвать
-  // оформление заказа (все ошибки глушатся внутри).
-  notifyNewOrderMax(order, orderItems).catch(() => {});
+  // Онлайн-оплата подключена → обязательная предоплата: создаём платёж и
+  // отдаём ссылку. В POS/MAX заказ уйдёт после подтверждения оплаты (вебхук).
+  const paymentDriver = await getPaymentDriver(settings);
+  if (paymentDriver) {
+    const confirmationUrl = await createPaymentForOrder(order, orderItems, settings, baseUrl || '');
+    return { publicId: order.public_id, total: Number(order.total), paymentStatus: 'pending', confirmationUrl };
+  }
 
-  return { publicId: order.public_id, total: Number(order.total), posStatus: order.pos_status };
+  // Оплата не подключена — прежнее поведение (оплата при получении).
+  await finalizeOrder(orderId);
+  const finalized = await db('orders').where({ id: orderId }).first();
+  return { publicId: finalized.public_id, total: Number(finalized.total), posStatus: finalized.pos_status, paymentStatus: 'not_required' };
+}
+
+/**
+ * Заказ «в работу»: отправка в POS + уведомление персоналу в MAX.
+ * Вызывается сразу (оплата при получении) или из вебхука после оплаты.
+ */
+export async function finalizeOrder(orderId) {
+  await pushOrderToPos(orderId);
+  const order = await db('orders').where({ id: orderId }).first();
+  const items = await db('order_items').where({ order_id: orderId });
+  // Fire-and-forget: не задерживает ответ и не может сорвать заказ.
+  notifyNewOrderMax(order, items).catch(() => {});
 }
 
 /** Отправка (или переотправка) заказа в POS. */

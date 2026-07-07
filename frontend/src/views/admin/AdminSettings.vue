@@ -13,6 +13,9 @@ const maxMessage = ref('');
 const maxError = ref('');
 const maxBusy = ref(false);
 
+// URL вебхука ЮKassa — его нужно указать в личном кабинете ЮKassa
+const webhookUrl = window.location.origin + '/api/payments/yookassa/webhook';
+
 onMounted(async () => {
   settings.value = await api.adminGetSettings();
 });
@@ -174,6 +177,37 @@ async function maxTest() {
           Добавьте бота в чат персонала, нажмите «Определить чат», выберите нужный чат и отправьте тест.
         </p>
       </section>
+
+      <section class="card block">
+        <h3>Онлайн-оплата (ЮKassa)</h3>
+        <label class="check">
+          <input type="checkbox" :checked="settings.yookassa_enabled === 'true'" @change="settings.yookassa_enabled = String($event.target.checked)" />
+          Принимать онлайн-оплату (СБП и карты)
+        </label>
+        <label class="field"><span>shopId (идентификатор магазина)</span><input v-model="settings.yookassa_shop_id" placeholder="Из ЛК ЮKassa → Настройки → Магазин" /></label>
+        <label class="field"><span>Секретный ключ</span><input v-model="settings.yookassa_secret_key" placeholder="Из ЛК ЮKassa → Интеграция → Ключи API" /></label>
+        <label class="field">
+          <span>Ставка НДС для чека</span>
+          <select v-model="settings.yookassa_vat_code">
+            <option value="1">Без НДС (ИП на УСН)</option>
+            <option value="2">НДС 0%</option>
+            <option value="3">НДС 10%</option>
+            <option value="4">НДС 20%</option>
+            <option value="5">НДС 10/110</option>
+            <option value="6">НДС 20/120</option>
+          </select>
+        </label>
+        <p class="muted" style="font-size: 13px;">
+          При включённой оплате заказ уходит на кухню только после успешной оплаты
+          (обязательная предоплата). Чек 54-ФЗ пробивает ЮKassa — включите чеки
+          в личном кабинете ЮKassa.
+        </p>
+        <p class="muted" style="font-size: 13px;">
+          В ЛК ЮKassa → Интеграция → HTTP-уведомления укажите адрес вебхука
+          (события <code>payment.succeeded</code> и <code>payment.canceled</code>):
+        </p>
+        <code class="webhook-url">{{ webhookUrl }}</code>
+      </section>
     </div>
   </div>
 
@@ -198,4 +232,13 @@ async function maxTest() {
 .max-actions { display: flex; gap: 10px; margin: 4px 0 12px; }
 .chat-list { list-style: none; padding: 0; margin: 0 0 12px; display: flex; flex-direction: column; gap: 6px; }
 .chat-list .active { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+.webhook-url {
+  display: block;
+  padding: 8px 10px;
+  background: var(--bg, #f4f1ec);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+  word-break: break-all;
+}
 </style>
