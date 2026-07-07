@@ -1,9 +1,11 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { useCartStore } from '../stores/cart.js';
+import { useSiteStore } from '../stores/site.js';
 import { formatPrice } from '../format.js';
 
 const cart = useCartStore();
+const site = useSiteStore();
 
 function qtySuffix(item) {
   return item.unit && item.unit !== 'шт' ? ` ${item.unit}` : '';
@@ -81,7 +83,8 @@ onBeforeUnmount(() => resizeObserver?.disconnect());
             <div class="row total"><span>Итого</span><span>{{ formatPrice(cart.total) }} ₽</span></div>
           </div>
 
-          <router-link to="/checkout">
+          <p v-if="!site.orderingOpen" class="closed-note">{{ site.orderingClosedMessage }}</p>
+          <router-link v-else to="/checkout">
             <button class="btn go">
               <span>Перейти к оформлению</span>
               <span>{{ formatPrice(cart.total) }} ₽</span>
@@ -165,5 +168,15 @@ onBeforeUnmount(() => resizeObserver?.disconnect());
   gap: 12px;
   border-radius: 26px;
   font-size: 15px;
+}
+.closed-note {
+  margin: 12px 0 0;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #fff3e6;
+  border: 1.5px solid #f5c89a;
+  color: #8a4b08;
+  font-size: 13px;
+  font-weight: 600;
 }
 </style>

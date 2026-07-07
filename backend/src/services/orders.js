@@ -4,6 +4,8 @@ import { getPosDriver } from '../pos/index.js';
 import { notifyNewOrderMax } from '../notifications/max.js';
 import { getPaymentDriver } from '../payments/index.js';
 import { createPaymentForOrder } from './payments.js';
+import { pricingOf } from './overrides.js';
+import { getOrderingStatus, closedMessage } from './workHours.js';
 
 /**
  * Создание заказа: валидация → пересчёт сумм по ценам из БД (не доверяем
@@ -15,6 +17,10 @@ import { createPaymentForOrder } from './payments.js';
  */
 export async function createOrder(input, { baseUrl } = {}) {
   const settings = await getAllSettings();
+
+  // Время работы: вне расписания (или при ручной паузе) заказы не принимаем
+  const ordering = getOrderingStatus(settings);
+  if (!ordering.open) throw httpError(400, closedMessage(ordering));
 
   const type = input.type;
   if (!['pickup', 'delivery'].includes(type)) throw httpError(400, 'Неверный тип заказа');
@@ -55,12 +61,15 @@ export async function createOrder(input, { baseUrl } = {}) {
     if (badQty) {
       throw httpError(400, `Неверное количество для позиции «${product.name}»`);
     }
-    itemsTotal += Math.round(Number(product.price) * qty * 100) / 100;
+    // Цена — как на витрине: база с учётом ручного переопределения,
+    // затем акционная цена, если действует скидка (см. pricingOf).
+    const price = pricingOf(product).final;
+    itemsTotal += Math.round(price * qty * 100) / 100;
     orderItems.push({
       product_id: product.id,
       external_id: product.external_id,
       name: product.name,
-      price: product.price,
+      price,
       qty,
       unit: product.unit || 'шт',
     });

@@ -96,9 +96,10 @@ async function submit() {
       <p v-if="belowMin" class="error-text">
         Минимальная сумма заказа на доставку — {{ formatPrice(site.deliveryMinOrder) }} ₽
       </p>
+      <p v-if="!site.orderingOpen" class="closed-note">{{ site.orderingClosedMessage }}</p>
       <p v-if="error" class="error-text">{{ error }}</p>
 
-      <button class="btn submit" :disabled="submitting || belowMin">
+      <button class="btn submit" :disabled="submitting || belowMin || !site.orderingOpen">
         {{ submitting ? 'Отправляем…' : `Заказать за ${formatPrice(total)} ₽` }}
       </button>
     </form>
@@ -141,6 +142,15 @@ async function submit() {
 @media (max-width: 800px) { .layout { grid-template-columns: 1fr; } }
 .form { padding: 22px; }
 .summary { padding: 28px; }
+.closed-note {
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #fff3e6;
+  border: 1.5px solid #f5c89a;
+  color: #8a4b08;
+  font-size: 14px;
+  font-weight: 600;
+}
 .summary h3 { font-size: 23px; }
 .type-switch { display: flex; gap: 8px; margin-bottom: 18px; }
 .type-switch button {

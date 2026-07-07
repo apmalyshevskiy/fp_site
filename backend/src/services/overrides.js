@@ -49,3 +49,20 @@ export function applyOverrides(row) {
   const overrides = parseOverrides(row.field_overrides);
   return Object.keys(overrides).length ? { ...row, ...overrides } : row;
 }
+
+// Единый расчёт цены позиции: база (цена POS с учётом ручного переопределения)
+// → акционная цена (promo_price), если она задана и МЕНЬШЕ базы.
+// Используется и в публичном меню, и при пересчёте заказа на сервере —
+// клиент платит ровно ту цену, что видит на витрине.
+export function pricingOf(row) {
+  const base = Number(applyOverrides(row).price);
+  const promo = row.promo_price != null ? Number(row.promo_price) : null;
+  if (promo != null && promo > 0 && promo < base) {
+    return {
+      final: promo,
+      oldPrice: base,
+      discountPercent: Math.round((1 - promo / base) * 100),
+    };
+  }
+  return { final: base, oldPrice: null, discountPercent: null };
+}

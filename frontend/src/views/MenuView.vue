@@ -1,9 +1,12 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue';
 import { api } from '../api.js';
+import { useSiteStore } from '../stores/site.js';
 import ProductCard from '../components/ProductCard.vue';
 import CartBar from '../components/CartBar.vue';
 import CartSidebar from '../components/CartSidebar.vue';
+
+const site = useSiteStore();
 
 const menu = ref([]);
 const loading = ref(true);
@@ -53,6 +56,11 @@ function selectCategory(id) {
   <div v-else-if="!menu.length" class="muted">Меню пока пусто. Загляните позже!</div>
 
   <template v-else>
+    <div v-if="!site.orderingOpen" class="closed-banner">
+      <span class="closed-icon">🕐</span>
+      <span>{{ site.orderingClosedMessage }} Меню можно посмотреть, но оформить заказ пока нельзя.</span>
+    </div>
+
     <div class="menu-layout">
       <div class="menu-main">
         <input
@@ -100,6 +108,19 @@ function selectCategory(id) {
 </template>
 
 <style scoped>
+.closed-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 12px 18px;
+  border-radius: 14px;
+  background: #fff3e6;
+  border: 1.5px solid #f5c89a;
+  color: #8a4b08;
+  font-weight: 600;
+}
+.closed-icon { font-size: 20px; }
 .menu-layout {
   display: grid;
   grid-template-columns: 1fr 390px;

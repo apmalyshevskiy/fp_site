@@ -3,7 +3,7 @@ import { db } from '../db.js';
 import { getPublicSettings } from '../settings.js';
 import { createOrder } from '../services/orders.js';
 import { handleYooKassaWebhook } from '../services/payments.js';
-import { applyOverrides } from '../services/overrides.js';
+import { applyOverrides, pricingOf } from '../services/overrides.js';
 
 export const publicRouter = Router();
 
@@ -31,11 +31,15 @@ publicRouter.get('/menu', async (_req, res, next) => {
         name: c.name,
         products: products
           .filter((p) => p.category_id === c.id)
-          .map((p) => ({
+          .map((p) => {
+            const pricing = pricingOf(p);
+            return {
             id: p.id,
             name: p.name,
             description: p.description,
-            price: Number(p.price),
+            price: pricing.final, // акционная цена, если действует скидка
+            oldPrice: pricing.oldPrice, // базовая цена для перечёркивания (null без акции)
+            discountPercent: pricing.discountPercent,
             imageUrl: p.image_url,
             unit: p.unit || 'шт',
             qtyStep: Number(p.qty_step) || 1,
@@ -47,7 +51,8 @@ publicRouter.get('/menu', async (_req, res, next) => {
             fat: p.fat != null ? Number(p.fat) : null,
             carbohydrate: p.carbohydrate != null ? Number(p.carbohydrate) : null,
             kilocalories: p.kilocalories != null ? Number(p.kilocalories) : null,
-          })),
+            };
+          }),
       }))
       .filter((c) => c.products.length > 0);
     res.json(result);

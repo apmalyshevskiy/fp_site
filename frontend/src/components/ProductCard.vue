@@ -41,6 +41,8 @@ function onCalcConfirm(qty) {
     <div class="img-wrap">
       <img v-if="product.imageUrl" :src="product.imageUrl" :alt="product.name" loading="lazy" />
       <div v-else class="img-placeholder">🍽️</div>
+      <!-- Бейдж скидки (как в Я.Еде) -->
+      <div v-if="product.discountPercent" class="disc-badge">-{{ product.discountPercent }}%</div>
       <!-- Количество в корзине поверх фото -->
       <div v-if="inCartQty" class="img-badge">{{ qtyLabel }}</div>
     </div>
@@ -52,7 +54,10 @@ function onCalcConfirm(qty) {
       <p v-if="nutritionLine" class="nutrition muted">{{ nutritionLine }}</p>
       <p v-if="product.allergens" class="allergens muted">Аллергены: {{ product.allergens }}</p>
       <div class="bottom">
-        <span class="price">{{ formatPrice(product.price) }} ₽<span v-if="!isPiece" class="per-unit">/{{ product.unit }}</span></span>
+        <span class="price" :class="{ discounted: product.oldPrice }">
+          {{ formatPrice(product.price) }} ₽<span v-if="!isPiece" class="per-unit">/{{ product.unit }}</span>
+          <s v-if="product.oldPrice" class="old-price">{{ formatPrice(product.oldPrice) }} ₽</s>
+        </span>
 
         <!-- Весовой товар: количество открывает калькулятор -->
         <button v-if="isWeight && inCartQty" class="qty-pill" @click="showCalc = true">
@@ -122,6 +127,26 @@ function onCalcConfirm(qty) {
 .allergens { color: #b35309; }
 .bottom { display: flex; align-items: center; justify-content: space-between; margin-top: auto; }
 .price { font-weight: 800; font-size: 20px; }
+.price.discounted { color: #c0392b; }
+.old-price {
+  margin-left: 6px;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 15px;
+  white-space: nowrap;
+}
+.disc-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: #e03131;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .18);
+}
 .per-unit { font-weight: 600; font-size: 14px; color: var(--muted); }
 .qty { display: flex; align-items: center; gap: 10px; font-weight: 500; }
 .qty-label { white-space: nowrap; font-size: 18px; }

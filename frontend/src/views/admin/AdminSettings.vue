@@ -18,6 +18,10 @@ const webhookUrl = window.location.origin + '/api/payments/yookassa/webhook';
 
 onMounted(async () => {
   settings.value = await api.adminGetSettings();
+  // Дефолты для новых ключей времени работы, чтобы поля не были пустыми
+  if (!settings.value.work_timezone) settings.value.work_timezone = 'Europe/Moscow';
+  if (!settings.value.work_open) settings.value.work_open = '10:00';
+  if (!settings.value.work_close) settings.value.work_close = '22:00';
 });
 
 async function save() {
@@ -127,6 +131,43 @@ async function maxTest() {
       </section>
 
       <section class="card block">
+        <h3>Время работы (приём заказов)</h3>
+        <label class="check pause-check">
+          <input type="checkbox" :checked="settings.orders_paused === 'true'" @change="settings.orders_paused = String($event.target.checked)" />
+          ⏸ Приостановить приём заказов (вручную, до снятия галки)
+        </label>
+        <label class="check">
+          <input type="checkbox" :checked="settings.work_schedule_enabled === 'true'" @change="settings.work_schedule_enabled = String($event.target.checked)" />
+          Ограничивать приём заказов по времени
+        </label>
+        <div class="time-row">
+          <label class="field"><span>Открытие</span><input v-model="settings.work_open" type="time" /></label>
+          <label class="field"><span>Закрытие</span><input v-model="settings.work_close" type="time" /></label>
+        </div>
+        <label class="field">
+          <span>Часовой пояс ресторана</span>
+          <select v-model="settings.work_timezone">
+            <option value="Europe/Kaliningrad">Калининград (МСК−1)</option>
+            <option value="Europe/Moscow">Москва (МСК)</option>
+            <option value="Europe/Samara">Самара (МСК+1)</option>
+            <option value="Asia/Yekaterinburg">Екатеринбург (МСК+2)</option>
+            <option value="Asia/Omsk">Омск (МСК+3)</option>
+            <option value="Asia/Krasnoyarsk">Красноярск (МСК+4)</option>
+            <option value="Asia/Irkutsk">Иркутск (МСК+5)</option>
+            <option value="Asia/Yakutsk">Якутск (МСК+6)</option>
+            <option value="Asia/Vladivostok">Владивосток (МСК+7)</option>
+            <option value="Asia/Magadan">Магадан (МСК+8)</option>
+            <option value="Asia/Kamchatka">Камчатка (МСК+9)</option>
+          </select>
+        </label>
+        <p class="muted" style="font-size: 13px;">
+          Вне указанного времени посетители видят меню, но не могут оформить заказ.
+          Если закрытие раньше открытия (например, 10:00–02:00) — работа «через полночь».
+          Поле «Часы работы» выше — просто текст в шапке сайта, а здесь — реальное ограничение.
+        </p>
+      </section>
+
+      <section class="card block">
         <h3>Интеграция FUSIONPOS</h3>
         <label class="field">
           <span>Драйвер</span>
@@ -232,6 +273,9 @@ async function maxTest() {
 .max-actions { display: flex; gap: 10px; margin: 4px 0 12px; }
 .chat-list { list-style: none; padding: 0; margin: 0 0 12px; display: flex; flex-direction: column; gap: 6px; }
 .chat-list .active { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+.time-row { display: flex; gap: 12px; }
+.time-row .field { flex: 1; }
+.pause-check { color: #b3540d; }
 .webhook-url {
   display: block;
   padding: 8px 10px;

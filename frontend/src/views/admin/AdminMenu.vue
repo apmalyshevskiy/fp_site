@@ -57,6 +57,15 @@ function posDisplay(row, field) {
   return field === 'price' ? `${Number(v)} ₽` : String(v);
 }
 
+// Акция действует, если акционная цена задана и меньше текущей (эффективной) цены
+function promoActive(p) {
+  const promo = Number(p.promo_price);
+  return promo > 0 && promo < Number(effectiveValue(p, 'price'));
+}
+function promoPercent(p) {
+  return Math.round((1 - Number(p.promo_price) / Number(effectiveValue(p, 'price'))) * 100);
+}
+
 // Компактная строка со всеми доп. полями прямо в списке (без открытия панели)
 function infoLine(p) {
   const parts = [];
@@ -131,6 +140,16 @@ async function saveUnit(p) {
 function toggleWeight(p) {
   p.is_weight = !p.is_weight;
   saveUnit(p);
+}
+
+async function savePromo(p) {
+  try {
+    const updated = await api.adminPatchProduct(p.id, { promoPrice: p.promo_price ?? '' });
+    applyRow(p, updated, { qty_step: Number(updated.qty_step) });
+    error.value = '';
+  } catch (e) {
+    error.value = e.message;
+  }
 }
 
 async function uploadImage(p, event) {
@@ -259,7 +278,7 @@ async function revertField(key) {
     <table>
       <thead>
         <tr>
-          <th>Фото</th><th>Название</th><th>Цена</th><th>Вес порции</th><th>Ед. изм.</th><th>Шаг кол-ва</th><th>Весовой</th><th>В POS</th><th>На сайте</th><th></th>
+          <th>Фото</th><th>Название</th><th>Цена</th><th>Акция, ₽</th><th>Вес порции</th><th>Ед. изм.</th><th>Шаг кол-ва</th><th>Весовой</th><th>В POS</th><th>На сайте</th><th></th>
         </tr>
       </thead>
       <tbody>
@@ -280,8 +299,27 @@ async function revertField(key) {
             <div v-if="infoLine(p)" class="muted info-line">{{ infoLine(p) }}</div>
           </td>
           <td>
-            {{ Number(effectiveValue(p, 'price')) }} ₽<span v-if="p.unit !== 'шт'" class="muted">/{{ p.unit }}</span>
+            <template v-if="promoActive(p)">
+              <s class="muted">{{ Number(effectiveValue(p, 'price')) }}</s>
+              <strong class="promo-price"> {{ Number(p.promo_price) }} ₽</strong>
+              <span class="promo-pct">-{{ promoPercent(p) }}%</span>
+            </template>
+            <template v-else>
+              {{ Number(effectiveValue(p, 'price')) }} ₽<span v-if="p.unit !== 'шт'" class="muted">/{{ p.unit }}</span>
+            </template>
             <sup v-if="isOverridden(p, 'price')" class="ov-mark" title="Цена изменена вручную">●</sup>
+          </td>
+          <td>
+            <input
+              v-model="p.promo_price"
+              class="promo-input"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="—"
+              title="Акционная цена. Пусто — без акции"
+              @change="savePromo(p)"
+            />
           </td>
           <td>
             <input v-model="p.weight_label" class="unit-input" maxlength="30" placeholder="367 г" @change="saveUnit(p)" />
@@ -423,6 +461,18 @@ tr.dim td { opacity: .55; }
 .row-actions { display: flex; align-items: center; gap: 8px; }
 .unit-input { width: 74px; padding: 6px 8px; }
 .step-input { width: 80px; padding: 6px 8px; }
+.promo-input { width: 78px; padding: 6px 8px; }
+.promo-price { color: #c0392b; white-space: nowrap; margin-left: 5px; }
+.promo-pct {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  background: #fdecec;
+  color: #c0392b;
+  font-size: 11px;
+  font-weight: 800;
+}
 .weight-check { width: 18px; height: 18px; cursor: pointer; }
 .ov-mark { color: var(--accent); font-size: 10px; margin-left: 2px; }
 

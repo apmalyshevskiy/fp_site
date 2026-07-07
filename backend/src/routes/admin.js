@@ -129,6 +129,17 @@ adminRouter.patch('/products/:id', async (req, res, next) => {
       if (!(step > 0 && step <= 99)) return res.status(400).json({ error: 'Шаг количества должен быть больше 0' });
       patch.qty_step = step;
     }
+    // Акционная цена: пустое значение снимает акцию
+    if ('promoPrice' in req.body) {
+      const raw = req.body.promoPrice;
+      if (raw === '' || raw == null) {
+        patch.promo_price = null;
+      } else {
+        const promo = Number(String(raw).replace(',', '.'));
+        if (!(promo > 0)) return res.status(400).json({ error: 'Акционная цена должна быть больше 0' });
+        patch.promo_price = promo;
+      }
+    }
     if (!Object.keys(patch).length) return res.status(400).json({ error: 'Нет изменений' });
     await db('products').where({ id: req.params.id }).update({ ...patch, updated_at: db.fn.now() });
     res.json(await db('products').where({ id: req.params.id }).first());
