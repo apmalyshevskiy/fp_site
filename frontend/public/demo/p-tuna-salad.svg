@@ -1,21 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="0.6" y2="1">
-      <stop offset="0" stop-color="#c5e8b0"/>
-      <stop offset="1" stop-color="#4f9d4f"/>
-    </linearGradient>
-    <radialGradient id="plate" cx="0.5" cy="0.42" r="0.6">
-      <stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/>
-      <stop offset="0.8" stop-color="#ffffff" stop-opacity="0.85"/>
-      <stop offset="1" stop-color="#ffffff" stop-opacity="0.75"/>
-    </radialGradient>
-  </defs>
-  <rect width="800" height="600" fill="url(#bg)"/>
-  <circle cx="137" cy="197" r="147" fill="#ffffff" opacity="0.12"/>
-  <circle cx="607" cy="306" r="52" fill="#ffffff" opacity="0.10"/>
-  <circle cx="307" cy="577" r="117" fill="#000000" opacity="0.05"/>
-  <circle cx="400" cy="300" r="190" fill="#000000" opacity="0.10"/>
-  <circle cx="400" cy="292" r="185" fill="url(#plate)"/>
-  <circle cx="400" cy="292" r="150" fill="none" stroke="#000000" stroke-opacity="0.06" stroke-width="3"/>
-  <text x="400" y="300" font-size="180" text-anchor="middle" dominant-baseline="central">🐟</text>
+  <rect width="800" height="600" fill="#ffffff"/>
+  <g transform="translate(400,300) scale(1.65) translate(-100,-100)"
+     fill="none" stroke="#F5A623" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+
+    <path d="M36,104 Q78,62 122,92 L156,72 L148,104 L156,136 L122,116 Q78,146 36,104 Z"/>
+    <circle cx="66" cy="98" r="4"/>
+  </g>
 </svg>

@@ -1,21 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="0.6" y2="1">
-      <stop offset="0" stop-color="#f4a988"/>
-      <stop offset="1" stop-color="#a83226"/>
-    </linearGradient>
-    <radialGradient id="plate" cx="0.5" cy="0.42" r="0.6">
-      <stop offset="0" stop-color="#ffffff" stop-opacity="0.95"/>
-      <stop offset="0.8" stop-color="#ffffff" stop-opacity="0.85"/>
-      <stop offset="1" stop-color="#ffffff" stop-opacity="0.75"/>
-    </radialGradient>
-  </defs>
-  <rect width="800" height="600" fill="url(#bg)"/>
-  <circle cx="287" cy="147" r="97" fill="#ffffff" opacity="0.12"/>
-  <circle cx="677" cy="506" r="187" fill="#ffffff" opacity="0.10"/>
-  <circle cx="377" cy="527" r="67" fill="#000000" opacity="0.05"/>
-  <circle cx="400" cy="300" r="190" fill="#000000" opacity="0.10"/>
-  <circle cx="400" cy="292" r="185" fill="url(#plate)"/>
-  <circle cx="400" cy="292" r="150" fill="none" stroke="#000000" stroke-opacity="0.06" stroke-width="3"/>
-  <text x="400" y="300" font-size="180" text-anchor="middle" dominant-baseline="central">🌽</text>
+  <rect width="800" height="600" fill="#ffffff"/>
+  <g transform="translate(400,300) scale(1.65) translate(-100,-100)"
+     fill="none" stroke="#F5A623" stroke-width="9" stroke-linecap="round" stroke-linejoin="round">
+
+    <ellipse cx="100" cy="106" rx="26" ry="58"/>
+    <path d="M87,54 Q85,106 89,158 M113,54 Q115,106 111,158"/>
+    <path d="M76,86 Q100,92 124,86 M76,126 Q100,132 124,126"/>
+    <path d="M78,148 Q60,170 42,168 Q54,146 74,138 M122,148 Q140,170 158,168 Q146,146 126,138"/>
+  </g>
 </svg>
