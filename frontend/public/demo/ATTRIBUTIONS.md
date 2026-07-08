@@ -1,0 +1,46 @@
+# Источники демо-фотографий
+
+Фото — Wikimedia Commons, свободные лицензии (указаны ниже).
+
+- p-margherita.jpg — CC BY-SA 3.0, автор: Mario56 — https://commons.wikimedia.org/wiki/File:Margherita_Originale.JPG
+- p-pepperoni.jpg — CC BY-SA 4.0, автор: Rjcastillo — https://commons.wikimedia.org/wiki/File:Pizza_Tradici%C3%B3n_Napolitana.jpg
+- p-four-cheese.jpg — CC BY-SA 2.0, автор: Ewan Munro from London, UK — https://commons.wikimedia.org/wiki/File:Pizza_quattro_formaggi_at_restaurant,_Chalk_Farm_Road,_London.jpg
+- p-hawaiian.jpg — CC BY 2.0, автор: @joefoodie from USA — https://commons.wikimedia.org/wiki/File:Hawaiian_pizza_1.jpg
+- p-bbq.jpg — CC0, автор: WCPCLM 2002258 — https://commons.wikimedia.org/wiki/File:SZ_%E6%B7%B1%E5%9C%B3_Shenzhen_%E7%A6%8F%E7%94%B0_Futian_%E7%9A%87%E5%BA%AD%E5%BB%A3%E5%A0%B4_Wongtee_Plaza_shop_%E6%BC%A2%E9%99%BD%E5%BB%B7%E8%87%AA%E5%8A%A9%E7%83%A4%E8%82%89_Hayaco_Barbecue_Restaurant_food_Pizzas_September_2025_R12S_02.jpg
+- p-mexicana.jpg — CC BY-SA 2.0, автор: Alpha — https://commons.wikimedia.org/wiki/File:Mexicana_Pizza_-_L%27Olivo_AUD17_large.jpg
+- p-quattro-stagioni.jpg — Public domain, автор: Xocolatl — https://commons.wikimedia.org/wiki/File:Pizza_Quattro_Stagioni.jpg
+- p-cheese-classic.jpg — CC BY-SA 4.0, автор: Victor Manuel Giordano — https://commons.wikimedia.org/wiki/File:Pizza_with_mozzarella_(argentine_style).jpg
+- p-vegetarian.jpg — CC BY-SA 4.0, автор: Petar Milošević — https://commons.wikimedia.org/wiki/File:Vegetarian_Pizza.jpg
+- p-meat.jpg — CC BY 2.0, автор: Father.Jack from Coventry, UK — https://commons.wikimedia.org/wiki/File:Pizza_with_meat,_anchovies,_olives.jpg
+- p-diablo.jpg — CC BY-SA 4.0, автор: 掬茶 — https://commons.wikimedia.org/wiki/File:Pizza_Diavola_(Verde_Ischia).jpg
+- p-seafood.jpg — Public domain, автор: 投稿者 — https://commons.wikimedia.org/wiki/File:Seafood_pizza_(1).jpg
+- p-caesar.jpg — CC0, автор: Andy Li — https://commons.wikimedia.org/wiki/File:Caesar_Salad_-_Purezza_2023-11-22.jpg
+- p-greek.jpg — CC BY-SA 4.0, автор: Paasikivi — https://commons.wikimedia.org/wiki/File:Greek_salad_and_Tzatziki.jpg
+- p-caprese.jpg — CC BY-SA 3.0, автор: MOs810 — https://commons.wikimedia.org/wiki/File:Insalata_Caprese_(from_Poznan).JPG
+- p-olivier.jpg — CC BY-SA 4.0, автор: Jacek Halicki — https://commons.wikimedia.org/wiki/File:2023_Sa%C5%82atka_jarzynowa_(1).jpg
+- p-vinegret.jpg — CC BY-SA 2.5, автор: Loyna (original image); processed by Off-shell — https://commons.wikimedia.org/wiki/File:Vinegret_cleaned.jpg
+- p-warm-beef.jpg — Public domain, автор: Gesalbte — https://commons.wikimedia.org/wiki/File:Chef_Salad.JPG
+- p-shrimp-salad.jpg — CC BY-SA 4.0, автор: E4024 — https://commons.wikimedia.org/wiki/File:Shrimp_salad_from_Turkey.jpg
+- p-beet-goat.jpg — CC BY-SA 4.0, автор: Chris Olszewski — https://commons.wikimedia.org/wiki/File:Beetroot,_spinach,_rocket,_goat_cheese_and_pumpkin_seeds_salad.jpg
+- p-veg-mix.jpg — CC BY 4.0, автор: Mmaua1 — https://commons.wikimedia.org/wiki/File:Fresh_vegetable_salad.jpg
+- p-tuna-salad.jpg — Public domain, автор: U.S. Department of Agriculture — https://commons.wikimedia.org/wiki/File:Tuna_fish_sandwiches_for_the_National_School_Lunch_Program_(1).jpg
+- p-shashlik.jpg — CC BY-SA 4.0, автор: Amin Noubahar — https://commons.wikimedia.org/wiki/File:Kebab_Gerashi.jpg
+- p-wings.jpg — CC BY-SA 4.0, автор: E4024 — https://commons.wikimedia.org/wiki/File:Grilled_chicken_wings,_Turkish_style.jpg
+- p-chicken-skewer.jpg — CC BY-SA 4.0, автор: Meandkancil2020 — https://commons.wikimedia.org/wiki/File:Sate_Ayam_Panggang.jpg
+- p-lamb-skewer.jpg — CC BY-SA 4.0, автор: E4024 — https://commons.wikimedia.org/wiki/File:Uykuluk_(skewers).jpg
+- p-beef-steak.jpg — CC BY-SA 3.0, автор: JIP — https://commons.wikimedia.org/wiki/File:Grilled_beef_steak_in_Cala_P%C3%AD,_Mallorca,_Spain.jpg
+- p-lulya.jpg — CC BY-SA 2.0, автор: Lesya Dolyk — https://commons.wikimedia.org/wiki/File:Lula_kebab.jpg
+- p-ribs-bbq.jpg — CC BY 4.0, автор: Pannet — https://commons.wikimedia.org/wiki/File:Pork-ribs_02.jpg
+- p-grilled-veg.jpg — CC BY 2.0, автор: Jeremy Keith — https://commons.wikimedia.org/wiki/File:Grilled_zucchini.jpg
+- p-chicken-fillet.jpg — CC0, автор: Gerda Arendt — https://commons.wikimedia.org/wiki/File:Grilled_chicken_breast,_Santo_Domingo,_La_Palma.jpg
+- p-sausages.jpg — CC BY-SA 4.0, автор: Hillsta — https://commons.wikimedia.org/wiki/File:Sausages_cooking_on_a_barbecue.jpg
+- p-cola.jpg — Public domain, автор: pic_p_ter — https://commons.wikimedia.org/wiki/File:Glass_cola.jpg
+- p-morse.jpg — CC BY-SA 3.0, автор: Schekinov Alexey Victorovich — https://commons.wikimedia.org/wiki/File:Mors_(ru._%D0%9C%D0%BE%D1%80%D1%81_-_%D0%BF%D1%80%D0%BE%D1%85%D0%BB%D0%B0%D0%B4%D0%B8%D1%82%D0%B5%D0%BB%D1%8C%D0%BD%D1%8B%D0%B9_%D0%BD%D0%B5%D0%B3%D0%B0%D0%B7%D0%B8%D1%80%D0%BE%D0%B2%D0%B0%D0%BD%D0%BD%D1%8B%D0%B9_%D0%BD%D0%B0%D0%BF%D0%B8%D1%82%D0%BE%D0%BA).JPG
+- p-lemonade-mojito.jpg — CC0, автор: El Nuevo Doge — https://commons.wikimedia.org/wiki/File:Mojito,_Mazatl%C3%A1n,_30_de_noviembre_de_2022.jpg
+- p-black-tea.jpg — CC BY-SA 4.0, автор: AntanO — https://commons.wikimedia.org/wiki/File:Cup_of_black_tea.JPG
+- p-green-tea.jpg — CC BY-SA 4.0, автор: Difference engine — https://commons.wikimedia.org/wiki/File:2018_Uji_lightly_steamed_sencha_-_first_infusion.jpg
+- p-cappuccino.jpg — CC BY-SA 4.0, автор: TricksterWildcat — https://commons.wikimedia.org/wiki/File:Cappuccino_and_cookie.jpg
+- p-americano.jpg — Public domain, автор: Sameer.siddhanti — https://commons.wikimedia.org/wiki/File:Espresso_Americano.jpeg
+- p-orange-juice.jpg — Public domain, автор: USDA; edited by Arad — https://commons.wikimedia.org/wiki/File:Orange_juice_1_edit1.jpg
+- p-still-water.jpg — CC BY-SA 4.0, автор: Smuconlaw — https://commons.wikimedia.org/wiki/File:Acqua_Panna_mineral_water_in_a_glass_bottle_-_20140408.jpg
+- p-kompot.jpg — CC BY-SA 4.0, автор: Djdeaka — https://commons.wikimedia.org/wiki/File:Kompot_z_suszonych_sliwek.JPG

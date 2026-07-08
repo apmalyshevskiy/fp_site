@@ -62,10 +62,10 @@ export class MockPosDriver {
   async fetchMenu() {
     return {
       categories: DEMO_MENU.categories,
-      // Демо-картинки лежат в frontend/public/demo/<externalId>.svg и
-      // раздаются собранным фронтом. Синк подставит их только там, где своя
-      // картинка ещё не загружена (см. menuSync.js).
-      products: DEMO_MENU.products.map((p) => ({ ...p, imageUrl: `/demo/${p.externalId}.svg` })),
+      // Демо-фото (Wikimedia Commons, свободные лицензии — см.
+      // frontend/public/demo/ATTRIBUTIONS.md) раздаются собранным фронтом.
+      // Синк подставит их только там, где своя картинка ещё не загружена.
+      products: DEMO_MENU.products.map((p) => ({ ...p, imageUrl: `/demo/${p.externalId}.jpg` })),
     };
   }
 
