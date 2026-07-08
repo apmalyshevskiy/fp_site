@@ -69,11 +69,19 @@ export async function fetchMaxChats(token) {
 }
 
 /** Текст уведомления о новом заказе для чата персонала. */
-export function formatOrderMessage(order, items) {
+export function formatOrderMessage(order, items, { timeZone = 'Europe/Moscow' } = {}) {
   const money = (n) => `${Number(n)} ₽`;
   const lines = [];
   lines.push(`🔔 Новый заказ №${order.public_id}`);
   lines.push(order.type === 'delivery' ? '🚗 Доставка' : '🥡 Самовывоз');
+  if (order.scheduled_at) {
+    // Время — в таймзоне ресторана; дата в скобках на случай «через полночь»
+    const fmt = new Intl.DateTimeFormat('ru-RU', {
+      timeZone, hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit',
+    }).formatToParts(new Date(order.scheduled_at));
+    const get = (t) => fmt.find((p) => p.type === t)?.value;
+    lines.push(`⏰ Ко времени: ${get('hour')}:${get('minute')} (${get('day')}.${get('month')})`);
+  }
   lines.push('');
   lines.push(`${order.customer_name}, ${order.customer_phone}`);
   if (order.type === 'delivery' && order.address) lines.push(`Адрес: ${order.address}`);
@@ -103,7 +111,8 @@ export async function notifyNewOrderMax(order, items) {
   if (s.max_enabled !== 'true') return;
   if (!s.max_bot_token || !s.max_chat_id) return;
   try {
-    await sendMaxMessage(s.max_bot_token, s.max_chat_id, formatOrderMessage(order, items));
+    const text = formatOrderMessage(order, items, { timeZone: s.work_timezone || 'Europe/Moscow' });
+    await sendMaxMessage(s.max_bot_token, s.max_chat_id, text);
   } catch (e) {
     console.error('MAX notify failed:', e.message);
   }

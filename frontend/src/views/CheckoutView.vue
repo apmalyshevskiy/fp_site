@@ -18,6 +18,22 @@ const comment = ref('');
 const submitting = ref(false);
 const error = ref('');
 
+// Оплата: доставка — всегда онлайн (правило сервера), самовывоз — по выбору
+const paymentAvailable = computed(() => site.settings.online_payment_enabled === 'true');
+const payOnline = ref(true); // выбор клиента для самовывоза
+const willPayOnline = computed(
+  () => paymentAvailable.value && (type.value === 'delivery' || payOnline.value)
+);
+
+// Время: «как можно скорее» или к конкретному времени (валидирует сервер)
+const timeMode = ref('asap');
+const scheduledTime = ref('');
+const timeHint = computed(() =>
+  site.settings.work_schedule_enabled === 'true'
+    ? `Принимаем с ${site.settings.work_open} до ${site.settings.work_close}, минимум за 30 минут`
+    : 'Минимум за 30 минут'
+);
+
 const deliveryFee = computed(() => {
   if (type.value !== 'delivery') return 0;
   if (site.deliveryFreeFrom > 0 && cart.total >= site.deliveryFreeFrom) return 0;
@@ -31,6 +47,10 @@ const belowMin = computed(
 
 async function submit() {
   error.value = '';
+  if (timeMode.value === 'scheduled' && !scheduledTime.value) {
+    error.value = 'Укажите время или выберите «Как можно скорее»';
+    return;
+  }
   submitting.value = true;
   try {
     const result = await api.createOrder({
@@ -39,6 +59,8 @@ async function submit() {
       customerPhone: phone.value,
       address: address.value,
       comment: comment.value,
+      payOnline: payOnline.value, // учитывается только для самовывоза
+      scheduledTime: timeMode.value === 'scheduled' ? scheduledTime.value : null,
       items: cart.list.map((i) => ({ productId: i.id, qty: i.qty })),
     });
     // Онлайн-оплата: уходим на страницу оплаты ЮKassa. Корзину НЕ чистим здесь —
@@ -93,6 +115,29 @@ async function submit() {
         <textarea v-model="comment" rows="2" maxlength="500" placeholder="Например: без лука"></textarea>
       </label>
 
+      <div class="pay-block">
+        <span class="pay-label">{{ type === 'delivery' ? 'Когда доставить' : 'Когда приготовить' }}</span>
+        <div class="pay-switch">
+          <button type="button" :class="{ active: timeMode === 'asap' }" @click="timeMode = 'asap'">⚡ Как можно скорее</button>
+          <button type="button" :class="{ active: timeMode === 'scheduled' }" @click="timeMode = 'scheduled'">🕐 Ко времени</button>
+        </div>
+        <div v-if="timeMode === 'scheduled'" class="time-pick">
+          <input v-model="scheduledTime" type="time" class="time-input" />
+          <span class="muted time-hint">{{ timeHint }}</span>
+        </div>
+      </div>
+
+      <div v-if="paymentAvailable" class="pay-block">
+        <template v-if="type === 'pickup'">
+          <span class="pay-label">Оплата</span>
+          <div class="pay-switch">
+            <button type="button" :class="{ active: payOnline }" @click="payOnline = true">💳 Онлайн</button>
+            <button type="button" :class="{ active: !payOnline }" @click="payOnline = false">💵 При получении</button>
+          </div>
+        </template>
+        <p v-else class="muted pay-note">💳 Заказы с доставкой оплачиваются онлайн</p>
+      </div>
+
       <p v-if="belowMin" class="error-text">
         Минимальная сумма заказа на доставку — {{ formatPrice(site.deliveryMinOrder) }} ₽
       </p>
@@ -100,7 +145,7 @@ async function submit() {
       <p v-if="error" class="error-text">{{ error }}</p>
 
       <button class="btn submit" :disabled="submitting || belowMin || !site.orderingOpen">
-        {{ submitting ? 'Отправляем…' : `Заказать за ${formatPrice(total)} ₽` }}
+        {{ submitting ? 'Отправляем…' : willPayOnline ? `Оплатить ${formatPrice(total)} ₽` : `Заказать за ${formatPrice(total)} ₽` }}
       </button>
     </form>
 
@@ -162,6 +207,22 @@ async function submit() {
   font-weight: 700;
 }
 .type-switch button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.pay-block { margin-bottom: 16px; }
+.pay-label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; font-weight: 600; }
+.pay-switch { display: flex; gap: 8px; }
+.pay-switch button {
+  flex: 1;
+  padding: 11px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1.5px solid var(--border);
+  font-weight: 700;
+}
+.pay-switch button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.pay-note { margin: 0; font-size: 14px; }
+.time-pick { display: flex; align-items: center; gap: 12px; margin-top: 10px; flex-wrap: wrap; }
+.time-input { width: 130px; padding: 10px 12px; font-weight: 700; font-size: 16px; }
+.time-hint { font-size: 12.5px; }
 .pickup-info { margin-top: 0; }
 .submit { width: 100%; padding: 14px; font-size: 16px; margin-top: 6px; }
 .line { padding: 10px 0; border-bottom: 1px solid var(--border); }

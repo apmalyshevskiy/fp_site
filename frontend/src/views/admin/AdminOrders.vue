@@ -21,6 +21,35 @@ const STATUS_LABELS = { new: 'Новый', accepted: 'Принят', done: 'Вы
 const STATUS_COLORS = { new: '#e8590c', accepted: '#2f6fed', done: '#157347', cancelled: '#a39a8f' };
 const POS_LABELS = { pending: 'в очереди', sent: 'отправлен в POS', error: 'ошибка отправки' };
 
+// Статусы онлайн-оплаты (см. миграцию payments): not_required — оплата при
+// получении, заказы до подключения ЮKassa тоже попадают сюда.
+const PAY_LABELS = {
+  not_required: 'оплата при получении',
+  pending: '⏳ ждёт оплаты',
+  paid: '✓ оплачен',
+  canceled: '✕ оплата не прошла',
+};
+const PAY_CLASSES = { not_required: 'gray', pending: 'orange', paid: 'green', canceled: 'red' };
+
+// Способы оплаты ЮKassa (payment_method.type из API)
+const PAY_METHODS = {
+  sbp: 'СБП',
+  bank_card: 'карта',
+  yoo_money: 'ЮMoney',
+  sberbank: 'SberPay',
+  tinkoff_bank: 'T-Pay',
+  cash: 'наличные',
+  mobile_balance: 'счёт телефона',
+};
+
+function payBadge(o) {
+  let label = PAY_LABELS[o.payment_status] || o.payment_status;
+  if (o.payment_status === 'paid' && o.payment_method) {
+    label += ` · ${PAY_METHODS[o.payment_method] || o.payment_method}`;
+  }
+  return label;
+}
+
 function fmtDate(d) {
   return new Date(d).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
@@ -39,9 +68,21 @@ function fmtDate(d) {
         <span class="badge orange" style="margin-left: 8px;">
           {{ o.type === 'delivery' ? 'Доставка' : 'Самовывоз' }}
         </span>
+        <span v-if="o.scheduled_at" class="badge scheduled" style="margin-left: 6px;">
+          ⏰ ко времени {{ fmtDate(o.scheduled_at) }}
+        </span>
         <span class="badge" :class="{ sent: 'green', error: 'red', pending: 'gray' }[o.pos_status]" style="margin-left: 6px;">
           {{ POS_LABELS[o.pos_status] }}
         </span>
+        <span
+          class="badge"
+          :class="PAY_CLASSES[o.payment_status] || 'gray'"
+          :title="o.paid_at ? `Оплачен ${fmtDate(o.paid_at)}` : ''"
+          style="margin-left: 6px;"
+        >
+          {{ payBadge(o) }}
+        </span>
+        <span v-if="o.paid_at" class="muted paid-at">оплачен {{ fmtDate(o.paid_at) }}</span>
       </div>
       <select
         class="status-select"
@@ -101,4 +142,6 @@ h1 { margin-bottom: 20px; }
 .item-line { padding: 2px 0; }
 .item-line.total { font-weight: 800; font-size: 15px; border-top: 1px solid var(--border); margin-top: 6px; padding-top: 8px; }
 .pos-err { margin-top: 8px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.paid-at { margin-left: 8px; font-size: 12px; white-space: nowrap; }
+.badge.scheduled { background: #e7f0ff; color: #2f6fed; font-weight: 800; }
 </style>

@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { db } from '../db.js';
 import { getPublicSettings } from '../settings.js';
 import { createOrder } from '../services/orders.js';
-import { handleYooKassaWebhook } from '../services/payments.js';
+import { handleYooKassaWebhook, refreshOrderPayment } from '../services/payments.js';
 import { applyOverrides, pricingOf } from '../services/overrides.js';
 
 export const publicRouter = Router();
@@ -75,8 +75,13 @@ publicRouter.post('/orders', async (req, res, next) => {
 // Отдаём минимум: номер, статус оплаты и сумму.
 publicRouter.get('/orders/:publicId/status', async (req, res, next) => {
   try {
-    const order = await db('orders').where({ public_id: String(req.params.publicId) }).first();
+    let order = await db('orders').where({ public_id: String(req.params.publicId) }).first();
     if (!order) return res.status(404).json({ error: 'Заказ не найден' });
+    // Ждём оплату — сверяемся с ЮKassa напрямую: вебхук мог не дойти
+    // (localhost, ещё не настроенные HTTP-уведомления, задержка доставки).
+    if (order.payment_status === 'pending') {
+      order = await refreshOrderPayment(order);
+    }
     res.json({ publicId: order.public_id, paymentStatus: order.payment_status, total: Number(order.total) });
   } catch (e) { next(e); }
 });

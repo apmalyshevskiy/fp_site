@@ -5,7 +5,7 @@ import { notifyNewOrderMax } from '../notifications/max.js';
 import { getPaymentDriver } from '../payments/index.js';
 import { createPaymentForOrder } from './payments.js';
 import { pricingOf } from './overrides.js';
-import { getOrderingStatus, closedMessage } from './workHours.js';
+import { getOrderingStatus, closedMessage, resolveScheduledAt } from './workHours.js';
 
 /**
  * Создание заказа: валидация → пересчёт сумм по ценам из БД (не доверяем
@@ -34,6 +34,16 @@ export async function createOrder(input, { baseUrl } = {}) {
 
   const address = type === 'delivery' ? String(input.address || '').trim() : null;
   if (type === 'delivery' && !address) throw httpError(400, 'Укажите адрес доставки');
+
+  // Заказ «ко времени»: пусто — как можно скорее
+  let scheduledAt = null;
+  if (input.scheduledTime) {
+    try {
+      scheduledAt = resolveScheduledAt(settings, input.scheduledTime);
+    } catch (e) {
+      throw httpError(400, e.message);
+    }
+  }
 
   const items = Array.isArray(input.items) ? input.items : [];
   if (!items.length) throw httpError(400, 'Корзина пуста');
@@ -93,6 +103,7 @@ export async function createOrder(input, { baseUrl } = {}) {
     customer_name: name,
     customer_phone: phone,
     address,
+    scheduled_at: scheduledAt,
     comment: String(input.comment || '').trim() || null,
     items_total: itemsTotal,
     delivery_fee: deliveryFee,
@@ -109,10 +120,12 @@ export async function createOrder(input, { baseUrl } = {}) {
 
   const order = await db('orders').where({ id: orderId }).first();
 
-  // Онлайн-оплата подключена → обязательная предоплата: создаём платёж и
-  // отдаём ссылку. В POS/MAX заказ уйдёт после подтверждения оплаты (вебхук).
+  // Правило оплаты: доставка — всегда предоплата; самовывоз — по выбору
+  // клиента (payOnline). Если онлайн-оплата не настроена, любые заказы
+  // принимаются без неё (иначе отключение ЮKassa остановило бы и доставку).
   const paymentDriver = await getPaymentDriver(settings);
-  if (paymentDriver) {
+  const payOnline = type === 'delivery' || input.payOnline === true;
+  if (paymentDriver && payOnline) {
     const confirmationUrl = await createPaymentForOrder(order, orderItems, settings, baseUrl || '');
     return { publicId: order.public_id, total: Number(order.total), paymentStatus: 'pending', confirmationUrl };
   }

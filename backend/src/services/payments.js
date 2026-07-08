@@ -6,7 +6,13 @@ import { buildReceipt } from '../payments/yookassa.js';
 /**
  * Создать онлайн-платёж для заказа и вернуть ссылку на оплату (confirmation_url).
  * Заказ переводится в payment_status='pending'. В POS/MAX он НЕ уходит — это
- * произойдёт после подтверждения оплаты в вебхуке (обязательная предоплата).
+ * произойдёт после подтверждения оплаты (обязательная предоплата).
+ *
+ * Об оплате мы узнаём двумя независимыми путями:
+ *  1) вебхук ЮKassa (ЛК → Интеграция → HTTP-уведомления) — основной в проде;
+ *  2) активная сверка при опросе статуса заказа (см. refreshOrderPayment) —
+ *     работает и локально, где вебхук физически не может дойти, и страхует
+ *     прод от недошедших/ненастроенных уведомлений.
  */
 export async function createPaymentForOrder(order, items, settings, baseUrl) {
   const driver = await getPaymentDriver(settings);
@@ -35,40 +41,68 @@ export async function createPaymentForOrder(order, items, settings, baseUrl) {
 }
 
 /**
+ * Применить авторитетный статус платежа (полученный от ЮKassa по API) к заказу.
+ * UPDATE с условием payment_status='pending' — атомарный замок: вебхук и
+ * активная сверка могут сработать одновременно, но финализирует заказ
+ * (POS + уведомление MAX) только тот, чей UPDATE прошёл первым.
+ */
+async function applyPaymentResult(orderId, payment) {
+  if (payment.status === 'succeeded' && payment.paid) {
+    const won = await db('orders')
+      .where({ id: orderId, payment_status: 'pending' })
+      .update({
+        payment_status: 'paid',
+        payment_method: payment.method,
+        paid_at: db.fn.now(),
+        updated_at: db.fn.now(),
+      });
+    if (won) {
+      const { finalizeOrder } = await import('./orders.js');
+      await finalizeOrder(orderId);
+    }
+  } else if (payment.status === 'canceled') {
+    await db('orders')
+      .where({ id: orderId, payment_status: 'pending' })
+      .update({ payment_status: 'canceled', updated_at: db.fn.now() });
+  }
+}
+
+/**
  * Обработка вебхука ЮKassa. Телу вебхука НЕ доверяем — перезапрашиваем платёж
- * по id авторитетно и только тогда меняем статус заказа. Идемпотентно: повторные
- * вебхуки об уже оплаченном заказе игнорируются.
+ * по id авторитетно и только тогда меняем статус заказа. Идемпотентно.
  */
 export async function handleYooKassaWebhook(body) {
   const event = body?.event;
   const paymentId = body?.object?.id;
   if (!paymentId || (event !== 'payment.succeeded' && event !== 'payment.canceled')) return;
 
-  const settings = await getAllSettings();
-  const driver = await getPaymentDriver(settings);
+  const driver = await getPaymentDriver(await getAllSettings());
   if (!driver) return;
 
   const payment = await driver.getPayment(paymentId);
   const orderId = Number(payment.metadata?.order_id);
   if (!orderId) return;
-  const order = await db('orders').where({ id: orderId }).first();
-  if (!order) return;
 
-  if (payment.status === 'succeeded' && payment.paid) {
-    if (order.payment_status === 'paid') return; // уже финализирован
-    await db('orders').where({ id: orderId }).update({
-      payment_status: 'paid',
-      payment_method: payment.method,
-      paid_at: db.fn.now(),
-      updated_at: db.fn.now(),
-    });
-    // Оплата подтверждена — теперь отдаём заказ в работу (POS + уведомление MAX).
-    const { finalizeOrder } = await import('./orders.js');
-    await finalizeOrder(orderId);
-  } else if (payment.status === 'canceled' && order.payment_status !== 'paid') {
-    await db('orders').where({ id: orderId }).update({
-      payment_status: 'canceled',
-      updated_at: db.fn.now(),
-    });
+  await applyPaymentResult(orderId, payment);
+}
+
+/**
+ * Активная сверка: если заказ ждёт оплату — спросить ЮKassa о платеже напрямую
+ * и применить результат. Вызывается из публичного эндпоинта статуса заказа
+ * (страница «Ожидаем оплату» опрашивает его каждые несколько секунд).
+ * Ошибки ЮKassa не роняют эндпоинт — заказ просто остаётся pending до
+ * следующей попытки. Возвращает актуальную строку заказа.
+ */
+export async function refreshOrderPayment(order) {
+  if (order.payment_status !== 'pending' || !order.payment_id) return order;
+  try {
+    const driver = await getPaymentDriver();
+    if (!driver) return order;
+    const payment = await driver.getPayment(order.payment_id);
+    await applyPaymentResult(order.id, payment);
+  } catch (e) {
+    console.error('YooKassa refresh:', e.message);
+    return order;
   }
+  return db('orders').where({ id: order.id }).first();
 }

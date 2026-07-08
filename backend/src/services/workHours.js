@@ -80,3 +80,65 @@ export function closedMessage(status) {
   }
   return `Сейчас закрыто. Приём заказов с ${status.openTime} до ${status.closeTime}.`;
 }
+
+// Минимальное время на приготовление заказа «ко времени», минут
+const SCHEDULE_LEAD_MIN = 30;
+
+const fmtMin = (min) => {
+  const m = ((min % 1440) + 1440) % 1440;
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+};
+
+/**
+ * Заказ «ко времени»: превращает желаемое время 'HH:MM' (в таймзоне ресторана)
+ * в абсолютный момент. Правила:
+ *  - время должно попадать в окно работы (если расписание включено);
+ *  - минимум SCHEDULE_LEAD_MIN минут от «сейчас» — иначе ошибка с подсказкой
+ *    ближайшего доступного времени (а не молчаливый перенос на завтра);
+ *  - при окне «через полночь» (10:00–02:00) время после полуночи относится
+ *    к текущему рабочему дню (заказ в 23:00 «к 01:30» — это сегодня).
+ * Бросает Error с готовым текстом для клиента; `now` инжектируется в тестах.
+ */
+export function resolveScheduledAt(settings, hhmm, now = new Date()) {
+  const timeMin = parseHM(hhmm);
+  if (timeMin == null) throw new Error('Укажите корректное время в формате ЧЧ:ММ');
+
+  let nowMin;
+  try {
+    nowMin = minutesNowIn(settings.work_timezone || DEFAULT_TZ, now);
+  } catch {
+    nowMin = minutesNowIn(DEFAULT_TZ, now);
+  }
+
+  const openMin = settings.work_schedule_enabled === 'true' ? parseHM(settings.work_open) : null;
+  const closeMin = settings.work_schedule_enabled === 'true' ? parseHM(settings.work_close) : null;
+  const hasWindow = openMin != null && closeMin != null && openMin !== closeMin;
+
+  if (hasWindow) {
+    const inWindow = openMin < closeMin
+      ? timeMin >= openMin && timeMin < closeMin
+      : timeMin >= openMin || timeMin < closeMin;
+    if (!inWindow) {
+      throw new Error(`Заказы к времени принимаем с ${settings.work_open} до ${settings.work_close}`);
+    }
+  }
+
+  let deltaMin = timeMin - nowMin;
+  // Окно «через полночь»: время из сегмента после полуночи — это ещё сегодняшний
+  // рабочий день, а не прошедшее время.
+  if (deltaMin < 0 && hasWindow && openMin > closeMin && timeMin < closeMin) {
+    deltaMin += 24 * 60;
+  }
+
+  if (deltaMin < SCHEDULE_LEAD_MIN) {
+    throw new Error(
+      `Нам нужно минимум ${SCHEDULE_LEAD_MIN} минут на приготовление — ` +
+      `ближайшее время: ${fmtMin(nowMin + SCHEDULE_LEAD_MIN)}`
+    );
+  }
+
+  // Абсолютный момент: «сейчас» + разница в минутах (секунды обнуляем)
+  const at = new Date(now.getTime() + deltaMin * 60000);
+  at.setSeconds(0, 0);
+  return at;
+}

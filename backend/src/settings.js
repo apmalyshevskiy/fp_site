@@ -14,7 +14,14 @@ export async function getAllSettings() {
 
 export async function getPublicSettings() {
   const all = await getAllSettings();
-  return Object.fromEntries(Object.entries(all).filter(([k]) => !PRIVATE_KEYS.has(k)));
+  const pub = Object.fromEntries(Object.entries(all).filter(([k]) => !PRIVATE_KEYS.has(k)));
+  // Производный публичный флаг «онлайн-оплата доступна» — сами ключи ЮKassa
+  // остаются приватными. Фронту нужно знать только факт, чтобы показать выбор
+  // способа оплаты на оформлении.
+  pub.online_payment_enabled = String(
+    all.yookassa_enabled === 'true' && !!all.yookassa_shop_id && !!all.yookassa_secret_key
+  );
+  return pub;
 }
 
 export async function setSettings(patch) {

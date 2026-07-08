@@ -15,11 +15,17 @@
 
 ## 0. Что нужно на сервере
 - Ubuntu/Debian, домен, A-запись домена → IP сервера.
-- Установленный nginx.
 - Docker + плагин compose:
   ```bash
   curl -fsSL https://get.docker.com | sudo sh
   docker compose version   # проверка
+  ```
+- nginx (если ещё не установлен):
+  ```bash
+  sudo apt update && sudo apt install -y nginx
+  systemctl status nginx        # active (running)
+  # Убрать дефолтный сайт-заглушку, чтобы не перехватывал запросы:
+  sudo rm -f /etc/nginx/sites-enabled/default
   ```
 
 ## 1. Код на сервер
@@ -60,11 +66,33 @@ sudo cp deploy/nginx/fp_site.conf /etc/nginx/sites-available/fp_site.conf
 sudo nano /etc/nginx/sites-available/fp_site.conf   # заменить ваш-домен.ru
 sudo ln -s /etc/nginx/sites-available/fp_site.conf /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
+# Проверка через nginx (ещё по HTTP): curl -I http://ваш-домен.ru/
 
-# TLS (certbot сам допишет 443-блок и авто-продление):
+# TLS (certbot сам допишет 443-блок и авто-продление).
+# Нужна А-запись домена на IP сервера и открытые порты 80/443:
 sudo apt install -y certbot python3-certbot-nginx
 sudo certbot --nginx -d ваш-домен.ru
 ```
+### Пока домена нет (доступ по IP)
+Конфиг поставляется с `server_name _;` — сайт открывается по `http://IP/` сразу,
+шаг с certbot пропустите. Ограничения без домена/HTTPS:
+- вебхуки ЮKassa не настроить (нужен https-адрес) — оплата подтверждается
+  активной сверкой, пока клиент держит страницу «Ожидаем оплату» открытой;
+- админка работает по открытому HTTP — заходите в неё только со своих
+  устройств и поставьте сильный пароль администратора.
+
+Вариант получить HTTPS без покупки домена: бесплатный wildcard-DNS
+`sslip.io` — имя вида `51-250-1-2.sslip.io` (IP через дефисы) уже указывает
+на ваш IP. Тогда TLS выпускается как обычно:
+```bash
+sudo sed -i 's/server_name _;/server_name 51-250-1-2.sslip.io;/' /etc/nginx/sites-available/fp_site.conf
+sudo nginx -t && sudo systemctl reload nginx
+sudo certbot --nginx -d 51-250-1-2.sslip.io
+```
+(лимиты Let's Encrypt на sslip.io общие для всех пользователей сервиса —
+если выпуск не удался, попробуйте позже или дождитесь своего домена).
+Когда появится свой домен: замените `server_name`, выпустите новый сертификат
+и обновите адрес вебхука в ЛК ЮKassa.
 
 ## 5. Первичная настройка в админке
 Откройте `https://ваш-домен.ru/admin/login`, войдите под `ADMIN_EMAIL`/`ADMIN_PASSWORD`,
