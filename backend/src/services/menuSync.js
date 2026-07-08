@@ -77,7 +77,11 @@ export async function syncMenu() {
         // unit/qty_step не обновляем: это настройки позиции, управляются из админки.
         // image_url и weight_label подставляем из POS, только если своих ещё нет —
         // номенклатура (а с ней и вес порции) есть не у каждой позиции.
-        if (p.imageUrl && !existing.image_url) row.image_url = p.imageUrl;
+        // Исключение: демо-картинки (/demo/...) управляются синком и обновляются
+        // вслед за драйвером (например, смена .svg -> .jpg); загруженные вручную
+        // фото живут в /uploads/ и не трогаются никогда.
+        const imageManaged = !existing.image_url || existing.image_url.startsWith('/demo/');
+        if (p.imageUrl && imageManaged && existing.image_url !== p.imageUrl) row.image_url = p.imageUrl;
         if (p.weightLabel && !existing.weight_label) row.weight_label = p.weightLabel;
         await trx('products').where({ id }).update({ ...row, updated_at: trx.fn.now() });
       } else {
