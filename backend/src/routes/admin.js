@@ -10,6 +10,7 @@ import { syncMenu } from '../services/menuSync.js';
 import { pushOrderToPos } from '../services/orders.js';
 import { mergeOverrides, PRODUCT_OVERRIDABLE_FIELDS, CATEGORY_OVERRIDABLE_FIELDS } from '../services/overrides.js';
 import { fetchMaxChats, sendMaxMessage } from '../notifications/max.js';
+import { modifiersByProduct } from '../services/modifiers.js';
 
 export const adminRouter = Router();
 
@@ -108,7 +109,59 @@ adminRouter.get('/menu', async (_req, res, next) => {
   try {
     const categories = await db('categories').orderBy('sort_order');
     const products = await db('products').orderBy('sort_order');
-    res.json({ categories, products });
+    const mods = await modifiersByProduct(products.map((p) => p.id));
+    res.json({
+      categories,
+      products: products.map((p) => ({ ...p, modifierGroups: mods.get(p.id) || [] })),
+    });
+  } catch (e) { next(e); }
+});
+
+// Полная замена конфигурации модификаторов позиции.
+// Тело: { groups: [{ name, type: 'single'|'multi', options: [{ name,
+// priceDelta, isDefault }] }] }. Пустой groups снимает все модификаторы.
+// История заказов не страдает: в заказах хранится снапшот, а не ссылки.
+adminRouter.put('/products/:id/modifiers', async (req, res, next) => {
+  try {
+    const product = await db('products').where({ id: req.params.id }).first();
+    if (!product) return res.status(404).json({ error: 'Не найдено' });
+
+    const groups = Array.isArray(req.body?.groups) ? req.body.groups : [];
+    for (const g of groups) {
+      if (!String(g.name || '').trim()) return res.status(400).json({ error: 'У каждой группы должно быть название' });
+      if (!['single', 'multi'].includes(g.type)) return res.status(400).json({ error: 'Неверный тип группы' });
+      const opts = Array.isArray(g.options) ? g.options : [];
+      if (!opts.length) return res.status(400).json({ error: `«${g.name}»: добавьте хотя бы один вариант` });
+      for (const o of opts) {
+        if (!String(o.name || '').trim()) return res.status(400).json({ error: `«${g.name}»: у варианта нет названия` });
+        if (!Number.isFinite(Number(o.priceDelta ?? 0))) return res.status(400).json({ error: `«${g.name}»: неверная цена варианта` });
+      }
+    }
+
+    await db.transaction(async (trx) => {
+      await trx('modifier_groups').where({ product_id: product.id }).delete(); // options каскадом
+      for (const [gi, g] of groups.entries()) {
+        const [groupId] = await trx('modifier_groups').insert({
+          product_id: product.id,
+          name: String(g.name).trim().slice(0, 100),
+          type: g.type,
+          sort_order: gi,
+        });
+        // single: ровно один default (первый помеченный, иначе первый вариант)
+        let defaultIdx = g.options.findIndex((o) => o.isDefault);
+        if (g.type === 'single' && defaultIdx === -1) defaultIdx = 0;
+        await trx('modifier_options').insert(g.options.map((o, oi) => ({
+          group_id: groupId,
+          name: String(o.name).trim().slice(0, 100),
+          price_delta: Math.round(Number(o.priceDelta ?? 0) * 100) / 100,
+          is_default: g.type === 'single' ? oi === defaultIdx : false,
+          sort_order: oi,
+        })));
+      }
+    });
+
+    const mods = await modifiersByProduct([product.id]);
+    res.json({ groups: mods.get(product.id) || [] });
   } catch (e) { next(e); }
 });
 

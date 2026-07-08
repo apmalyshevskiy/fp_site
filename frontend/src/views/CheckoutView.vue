@@ -41,6 +41,10 @@ const deliveryFee = computed(() => {
 });
 const total = computed(() => cart.total + deliveryFee.value);
 const lineTotal = (item) => Math.round(item.price * item.qty * 100) / 100;
+const modsLine = (item) =>
+  (item.modifiers || [])
+    .map((m) => (m.price > 0 ? `${m.name} +${formatPrice(m.price)} ₽` : m.name))
+    .join(' · ');
 const belowMin = computed(
   () => type.value === 'delivery' && site.deliveryMinOrder > 0 && cart.total < site.deliveryMinOrder
 );
@@ -61,7 +65,11 @@ async function submit() {
       comment: comment.value,
       payOnline: payOnline.value, // учитывается только для самовывоза
       scheduledTime: timeMode.value === 'scheduled' ? scheduledTime.value : null,
-      items: cart.list.map((i) => ({ productId: i.id, qty: i.qty })),
+      items: cart.list.map((i) => ({
+        productId: i.id,
+        qty: i.qty,
+        modifiers: i.modifiers?.length ? i.modifiers.map((m) => m.id) : undefined,
+      })),
     });
     // Онлайн-оплата: уходим на страницу оплаты ЮKassa. Корзину НЕ чистим здесь —
     // если оплату не завершат, заказ останется в корзине; очистим на странице
@@ -151,21 +159,22 @@ async function submit() {
 
     <aside class="card summary">
       <h3>Ваш заказ</h3>
-      <div v-for="item in cart.list" :key="item.id" class="line">
+      <div v-for="item in cart.list" :key="item.key" class="line">
         <div class="line-top">
           <span class="line-name">{{ item.name }}</span>
           <div class="qty">
-            <button class="qty-btn" @click="cart.remove(item.id)">−</button>
+            <button class="qty-btn" @click="cart.remove(item.key)">−</button>
             <input
               class="qty-input"
               type="text"
               inputmode="decimal"
               :value="item.qty"
-              @change="cart.setQty(item.id, $event.target.value)"
+              @change="cart.setQty(item.key, $event.target.value)"
             />
             <button class="qty-btn" @click="cart.add(item)">+</button>
           </div>
         </div>
+        <div v-if="modsLine(item)" class="line-mods muted">{{ modsLine(item) }}</div>
         <div class="line-bottom">
           <span class="muted">{{ formatPrice(item.price) }} ₽ × {{ item.qty }}{{ item.unit && item.unit !== 'шт' ? ` ${item.unit}` : '' }}</span>
           <span class="line-total">{{ formatPrice(lineTotal(item)) }} ₽</span>
@@ -228,6 +237,7 @@ async function submit() {
 .line { padding: 10px 0; border-bottom: 1px solid var(--border); }
 .line-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .line-name { font-size: 18px; font-weight: 600; }
+.line-mods { font-size: 12.5px; margin-top: 2px; }
 .line-bottom { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 14px; margin-top: 4px; }
 .line-total { font-weight: 800; font-size: 18px; white-space: nowrap; }
 .qty { display: flex; align-items: center; gap: 8px; font-weight: 700; flex-shrink: 0; }

@@ -43,6 +43,7 @@ export const api = {
   adminPatchProduct: (id, patch) => request('PATCH', `/api/admin/products/${id}`, patch, { auth: true }),
   adminPatchCategory: (id, patch) => request('PATCH', `/api/admin/categories/${id}`, patch, { auth: true }),
   adminOverrideProduct: (id, body) => request('PATCH', `/api/admin/products/${id}/override`, body, { auth: true }),
+  adminSaveModifiers: (id, groups) => request('PUT', `/api/admin/products/${id}/modifiers`, { groups }, { auth: true }),
   adminOverrideCategory: (id, body) => request('PATCH', `/api/admin/categories/${id}/override`, body, { auth: true }),
   adminMaxChats: () => request('POST', '/api/admin/max/chats', {}, { auth: true }),
   adminMaxTest: () => request('POST', '/api/admin/max/test', {}, { auth: true }),

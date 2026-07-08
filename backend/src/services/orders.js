@@ -6,6 +6,7 @@ import { getPaymentDriver } from '../payments/index.js';
 import { createPaymentForOrder } from './payments.js';
 import { pricingOf } from './overrides.js';
 import { getOrderingStatus, closedMessage, resolveScheduledAt } from './workHours.js';
+import { modifiersByProduct, resolveItemModifiers } from './modifiers.js';
 
 /**
  * Создание заказа: валидация → пересчёт сумм по ценам из БД (не доверяем
@@ -51,6 +52,7 @@ export async function createOrder(input, { baseUrl } = {}) {
   const productIds = items.map((i) => Number(i.productId)).filter(Boolean);
   const products = await db('products').whereIn('id', productIds);
   const byId = Object.fromEntries(products.map((p) => [p.id, p]));
+  const modsByProduct = await modifiersByProduct(productIds);
 
   let itemsTotal = 0;
   const orderItems = [];
@@ -71,9 +73,21 @@ export async function createOrder(input, { baseUrl } = {}) {
     if (badQty) {
       throw httpError(400, `Неверное количество для позиции «${product.name}»`);
     }
+    // Модификаторы: проверяем выбор и считаем доплату на сервере,
+    // клиентской цене не доверяем. Снапшот выбора уходит в строку заказа.
+    const groups = modsByProduct.get(product.id) || [];
+    let modifiers = { delta: 0, snapshot: [] };
+    if (groups.length || (Array.isArray(item.modifiers) && item.modifiers.length)) {
+      try {
+        modifiers = resolveItemModifiers(groups, item.modifiers);
+      } catch (e) {
+        throw httpError(400, `«${product.name}»: ${e.message}`);
+      }
+    }
+
     // Цена — как на витрине: база с учётом ручного переопределения,
-    // затем акционная цена, если действует скидка (см. pricingOf).
-    const price = pricingOf(product).final;
+    // затем акционная цена (pricingOf), затем доплаты за модификаторы.
+    const price = Math.max(0, Math.round((pricingOf(product).final + modifiers.delta) * 100) / 100);
     itemsTotal += Math.round(price * qty * 100) / 100;
     orderItems.push({
       product_id: product.id,
@@ -82,6 +96,7 @@ export async function createOrder(input, { baseUrl } = {}) {
       price,
       qty,
       unit: product.unit || 'шт',
+      modifiers: modifiers.snapshot.length ? JSON.stringify(modifiers.snapshot) : null,
     });
   }
   itemsTotal = Math.round(itemsTotal * 100) / 100;

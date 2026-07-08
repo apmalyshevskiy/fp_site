@@ -3,12 +3,16 @@ import { computed, ref } from 'vue';
 import { useCartStore } from '../stores/cart.js';
 import { formatPrice } from '../format.js';
 import WeightCalculator from './WeightCalculator.vue';
+import ModifierDialog from './ModifierDialog.vue';
 
 const props = defineProps({ product: { type: Object, required: true } });
 const cart = useCartStore();
 
 const showCalc = ref(false);
+const showMods = ref(false);
 const isWeight = computed(() => !!props.product.isWeight);
+// У весовых товаров модификаторы не поддерживаются (калькулятор веса главнее)
+const hasMods = computed(() => !isWeight.value && (props.product.modifierGroups?.length > 0));
 const isPiece = computed(() => (props.product.unit || 'шт') === 'шт');
 const inCartQty = computed(() => cart.qtyOf(props.product.id));
 const qtyLabel = computed(() =>
@@ -27,12 +31,21 @@ const nutritionLine = computed(() => {
 
 function onAddClick() {
   if (isWeight.value) showCalc.value = true;
+  else if (hasMods.value) showMods.value = true;
   else cart.add(props.product);
 }
 
 function onCalcConfirm(qty) {
   cart.setItem(props.product, qty);
   showCalc.value = false;
+}
+
+// Цена строки = цена товара + доплаты выбранных модификаторов
+function onModsConfirm(selected) {
+  const delta = selected.reduce((a, m) => a + m.price, 0);
+  const price = Math.max(0, Math.round((props.product.price + delta) * 100) / 100);
+  cart.add({ ...props.product, price }, selected);
+  showMods.value = false;
 }
 </script>
 
@@ -64,6 +77,10 @@ function onCalcConfirm(qty) {
           {{ qtyLabel }} ✎
         </button>
 
+        <!-- Товар с модификаторами: "+" всегда открывает выбор (какая из строк
+             корзины иначе непонятна) — количество меняется в корзине -->
+        <button v-else-if="hasMods" class="add-btn" @click="onAddClick">+</button>
+
         <!-- Штучный товар: обычные +/− -->
         <div v-else-if="inCartQty" class="qty">
           <button class="qty-btn" @click="cart.remove(product.id)">−</button>
@@ -81,6 +98,13 @@ function onCalcConfirm(qty) {
       :initial-qty="inCartQty"
       @close="showCalc = false"
       @confirm="onCalcConfirm"
+    />
+
+    <ModifierDialog
+      v-if="showMods"
+      :product="product"
+      @close="showMods = false"
+      @confirm="onModsConfirm"
     />
   </article>
 </template>

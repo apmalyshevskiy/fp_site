@@ -91,6 +91,12 @@ export function formatOrderMessage(order, items, { timeZone = 'Europe/Moscow' } 
     const sum = Math.round(Number(it.price) * Number(it.qty) * 100) / 100;
     const unit = it.unit && it.unit !== 'шт' ? ` ${it.unit}` : '';
     lines.push(`• ${it.name} × ${it.qty}${unit} — ${money(sum)}`);
+    // Модификаторы позиции (добавки/замены/объём/исключения) — подстрокой,
+    // чтобы кухня видела, что именно менять в блюде
+    const mods = typeof it.modifiers === 'string' ? JSON.parse(it.modifiers) : (it.modifiers || []);
+    if (mods.length) {
+      lines.push(`   ◦ ${mods.map((m) => (m.price > 0 ? `${m.name} (+${money(m.price)})` : m.name)).join(' · ')}`);
+    }
   }
   lines.push('');
   if (Number(order.delivery_fee) > 0) lines.push(`Доставка: ${money(order.delivery_fee)}`);

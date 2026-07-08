@@ -19,6 +19,12 @@ function lineSum(item) {
   return formatPrice(Math.round(item.price * item.qty * 100) / 100);
 }
 
+function modsLine(item) {
+  return (item.modifiers || [])
+    .map((m) => (m.price > 0 ? `${m.name} +${formatPrice(m.price)} ₽` : m.name))
+    .join(' · ');
+}
+
 function onClear() {
   if (confirm('Очистить корзину?')) cart.clear();
 }
@@ -52,22 +58,23 @@ onBeforeUnmount(() => resizeObserver?.disconnect());
 
         <template v-else>
           <TransitionGroup tag="div" name="item" class="items">
-            <div v-for="item in cart.list" :key="item.id" class="item">
+            <div v-for="item in cart.list" :key="item.key" class="item">
               <div class="thumb">
                 <img v-if="item.imageUrl" :src="item.imageUrl" :alt="item.name" />
                 <span v-else>🍽️</span>
               </div>
               <div class="info">
                 <div class="name">{{ item.name }}</div>
+                <div v-if="modsLine(item)" class="mods muted">{{ modsLine(item) }}</div>
                 <div class="unit-price muted">{{ unitPrice(item) }}</div>
                 <div class="qty-row">
-                  <button class="qty-btn" @click="cart.remove(item.id)">−</button>
+                  <button class="qty-btn" @click="cart.remove(item.key)">−</button>
                   <input
                     class="qty-input"
                     type="text"
                     inputmode="decimal"
                     :value="item.qty"
-                    @change="cart.setQty(item.id, $event.target.value)"
+                    @change="cart.setQty(item.key, $event.target.value)"
                   />
                   <span v-if="qtySuffix(item)" class="unit muted">{{ item.unit }}</span>
                   <button class="qty-btn" @click="cart.add(item)">+</button>
@@ -134,6 +141,7 @@ onBeforeUnmount(() => resizeObserver?.disconnect());
 .thumb img { width: 100%; height: 100%; object-fit: cover; }
 .info { flex: 1; min-width: 0; }
 .name { font-size: 14px; font-weight: 600; margin-bottom: 2px; }
+.mods { font-size: 11.5px; line-height: 1.3; margin-bottom: 2px; }
 .unit-price { font-size: 12px; margin-bottom: 6px; }
 .qty-row { display: flex; align-items: center; gap: 8px; }
 .qty-btn {

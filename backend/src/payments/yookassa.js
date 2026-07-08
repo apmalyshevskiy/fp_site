@@ -88,14 +88,19 @@ export class YooKassaDriver {
  */
 export function buildReceipt({ items, deliveryFee, phone, email }, vatCode) {
   const vat = Number(vatCode) || 1;
-  const receiptItems = items.map((it) => ({
-    description: String(it.name).slice(0, 128),
-    quantity: String(Number(it.qty)),
-    amount: { value: Number(it.price).toFixed(2), currency: 'RUB' },
-    vat_code: vat,
-    payment_mode: 'full_prepayment',
-    payment_subject: 'commodity',
-  }));
+  const receiptItems = items.map((it) => {
+    // Модификаторы в названии позиции чека — цена за единицу их уже включает
+    const mods = typeof it.modifiers === 'string' ? JSON.parse(it.modifiers) : (it.modifiers || []);
+    const name = mods.length ? `${it.name} (${mods.map((m) => m.name).join(', ')})` : it.name;
+    return {
+      description: String(name).slice(0, 128),
+      quantity: String(Number(it.qty)),
+      amount: { value: Number(it.price).toFixed(2), currency: 'RUB' },
+      vat_code: vat,
+      payment_mode: 'full_prepayment',
+      payment_subject: 'commodity',
+    };
+  });
   if (Number(deliveryFee) > 0) {
     receiptItems.push({
       description: 'Доставка',

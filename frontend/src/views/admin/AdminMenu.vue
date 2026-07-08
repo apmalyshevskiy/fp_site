@@ -229,6 +229,46 @@ function onBackdropClick(e) {
   if (backdropMouseDownSelf.value && e.target === e.currentTarget) closeEdit();
 }
 
+// --- Модификаторы (добавки, замены, объёмы, исключения) ---
+const modEditing = ref(null); // { product, groups: [...] } — локальная копия
+const savingMods = ref(false);
+
+function openMods(p) {
+  // Глубокая копия, чтобы отмена не портила строку
+  const groups = JSON.parse(JSON.stringify(p.modifierGroups || []));
+  modEditing.value = { product: p, groups };
+}
+function addModGroup() {
+  modEditing.value.groups.push({ name: '', type: 'multi', options: [{ name: '', priceDelta: 0, isDefault: false }] });
+}
+function removeModGroup(gi) {
+  modEditing.value.groups.splice(gi, 1);
+}
+function addModOption(g) {
+  g.options.push({ name: '', priceDelta: 0, isDefault: false });
+}
+function removeModOption(g, oi) {
+  g.options.splice(oi, 1);
+}
+function setModDefault(g, oi) {
+  g.options.forEach((o, i) => { o.isDefault = i === oi; });
+}
+async function saveMods() {
+  if (!modEditing.value) return;
+  savingMods.value = true;
+  try {
+    const { product, groups } = modEditing.value;
+    const { groups: saved } = await api.adminSaveModifiers(product.id, groups);
+    product.modifierGroups = saved;
+    error.value = '';
+    modEditing.value = null;
+  } catch (e) {
+    error.value = e.message;
+  } finally {
+    savingMods.value = false;
+  }
+}
+
 async function revertField(key) {
   if (!editing.value) return;
   try {
@@ -346,6 +386,14 @@ async function revertField(key) {
           <td>
             <div class="row-actions">
               <button class="btn-ghost btn-sm" @click="openEdit('product', p)">✎</button>
+              <button
+                class="btn-ghost btn-sm"
+                :class="{ 'has-mods': p.modifierGroups?.length }"
+                title="Модификаторы (добавки, замены, объёмы)"
+                @click="openMods(p)"
+              >
+                ⚙<template v-if="p.modifierGroups?.length"> {{ p.modifierGroups.length }}</template>
+              </button>
               <button class="btn-ghost btn-sm" @click="toggleProduct(p)">
                 {{ p.is_visible ? 'Скрыть' : 'Показать' }}
               </button>
@@ -429,6 +477,52 @@ async function revertField(key) {
         <button class="btn-ghost" @click="closeEdit">Отмена</button>
         <button class="btn" :disabled="savingOverride" @click="saveOverrides">
           {{ savingOverride ? 'Сохранение…' : 'Сохранить' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Конструктор модификаторов -->
+  <div v-if="modEditing" class="modal-backdrop" @mousedown="onBackdropMouseDown" @click="(e) => { if (backdropMouseDownSelf && e.target === e.currentTarget) modEditing = null; }">
+    <div class="modal mods-modal">
+      <h3>Модификаторы — {{ modEditing.product.name }}</h3>
+      <p class="muted modal-hint">
+        «Один вариант» — объём или замена ингредиента (клиент выбирает ровно один,
+        ⭐ — по умолчанию). «Несколько» — добавки и исключения («без лука»).
+        Доплата может быть 0 или отрицательной (меньший объём — дешевле).
+      </p>
+
+      <div v-for="(g, gi) in modEditing.groups" :key="gi" class="mod-group">
+        <div class="mod-group-head">
+          <input v-model="g.name" placeholder="Название группы (Объём / Молоко / Добавки / Убрать)" class="mod-name" maxlength="100" />
+          <select v-model="g.type" class="mod-type">
+            <option value="single">Один вариант</option>
+            <option value="multi">Несколько</option>
+          </select>
+          <button class="btn-ghost btn-sm" title="Удалить группу" @click="removeModGroup(gi)">✕</button>
+        </div>
+        <div v-for="(o, oi) in g.options" :key="oi" class="mod-option">
+          <button
+            v-if="g.type === 'single'"
+            class="star"
+            :class="{ active: o.isDefault }"
+            title="Вариант по умолчанию"
+            @click="setModDefault(g, oi)"
+          >★</button>
+          <input v-model="o.name" placeholder="Название варианта" class="mod-opt-name" maxlength="100" />
+          <input v-model.number="o.priceDelta" type="number" step="0.01" class="mod-opt-price" title="Доплата, ₽ (может быть 0 или со знаком минус)" />
+          <span class="muted">₽</span>
+          <button class="btn-ghost btn-sm" title="Удалить вариант" @click="removeModOption(g, oi)">✕</button>
+        </div>
+        <button class="btn-ghost btn-sm" @click="addModOption(g)">+ вариант</button>
+      </div>
+
+      <button class="btn-ghost add-group" @click="addModGroup">+ добавить группу</button>
+
+      <div class="modal-actions">
+        <button class="btn-ghost" @click="modEditing = null">Отмена</button>
+        <button class="btn" :disabled="savingMods" @click="saveMods">
+          {{ savingMods ? 'Сохранение…' : 'Сохранить' }}
         </button>
       </div>
     </div>
@@ -545,4 +639,17 @@ tr.dim td { opacity: .55; }
 }
 .pos-hint-sm span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pos-hint-sm .btn-xs { padding: 0 4px; flex-shrink: 0; }
+
+.has-mods { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+.mods-modal { max-width: 560px; }
+.mod-group { border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-bottom: 12px; }
+.mod-group-head { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+.mod-name { flex: 1; padding: 7px 10px; }
+.mod-type { width: 150px; padding: 7px 8px; }
+.mod-option { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.mod-opt-name { flex: 1; padding: 6px 10px; }
+.mod-opt-price { width: 90px; padding: 6px 8px; }
+.star { background: transparent; font-size: 18px; color: #d7cfc2; padding: 0 2px; }
+.star.active { color: #f5a623; }
+.add-group { margin-bottom: 6px; }
 </style>

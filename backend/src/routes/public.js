@@ -4,6 +4,7 @@ import { getPublicSettings } from '../settings.js';
 import { createOrder } from '../services/orders.js';
 import { handleYooKassaWebhook, refreshOrderPayment } from '../services/payments.js';
 import { applyOverrides, pricingOf } from '../services/overrides.js';
+import { modifiersByProduct } from '../services/modifiers.js';
 
 export const publicRouter = Router();
 
@@ -25,6 +26,7 @@ publicRouter.get('/menu', async (_req, res, next) => {
     const products = (await db('products').where({ is_visible: true, is_available: true }))
       .map(applyOverrides)
       .sort((a, b) => a.sort_order - b.sort_order);
+    const mods = await modifiersByProduct(products.map((p) => p.id));
     const result = categories
       .map((c) => ({
         id: c.id,
@@ -51,6 +53,7 @@ publicRouter.get('/menu', async (_req, res, next) => {
             fat: p.fat != null ? Number(p.fat) : null,
             carbohydrate: p.carbohydrate != null ? Number(p.carbohydrate) : null,
             kilocalories: p.kilocalories != null ? Number(p.kilocalories) : null,
+            modifierGroups: mods.get(p.id) || [],
             };
           }),
       }))

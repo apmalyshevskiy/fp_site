@@ -53,6 +53,12 @@ function payBadge(o) {
 function fmtDate(d) {
   return new Date(d).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
+
+// Снапшот модификаторов строки заказа (JSON из БД)
+function itemMods(it) {
+  const mods = typeof it.modifiers === 'string' ? JSON.parse(it.modifiers) : (it.modifiers || []);
+  return mods.map((m) => (m.price > 0 ? `${m.name} (+${m.price} ₽)` : m.name)).join(' · ');
+}
 </script>
 
 <template>
@@ -108,6 +114,7 @@ function fmtDate(d) {
         <div v-for="it in o.items" :key="it.id" class="item-line">
           {{ it.name }} × {{ Number(it.qty) }}{{ it.unit && it.unit !== 'шт' ? ` ${it.unit}` : '' }}
           <span class="muted">{{ Math.round(Number(it.price) * Number(it.qty) * 100) / 100 }} ₽</span>
+          <div v-if="itemMods(it)" class="item-mods muted">◦ {{ itemMods(it) }}</div>
         </div>
         <div v-if="Number(o.delivery_fee)" class="item-line muted">Доставка {{ Number(o.delivery_fee) }} ₽</div>
         <div class="item-line total">Итого {{ Number(o.total) }} ₽</div>
@@ -140,6 +147,7 @@ h1 { margin-bottom: 20px; }
 .order-body { display: flex; justify-content: space-between; gap: 20px; margin-top: 12px; flex-wrap: wrap; }
 .items { text-align: right; font-size: 14px; }
 .item-line { padding: 2px 0; }
+.item-mods { font-size: 12px; }
 .item-line.total { font-weight: 800; font-size: 15px; border-top: 1px solid var(--border); margin-top: 6px; padding-top: 8px; }
 .pos-err { margin-top: 8px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .paid-at { margin-left: 8px; font-size: 12px; white-space: nowrap; }
