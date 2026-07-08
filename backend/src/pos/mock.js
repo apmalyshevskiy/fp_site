@@ -60,7 +60,13 @@ const DEMO_MENU = {
 
 export class MockPosDriver {
   async fetchMenu() {
-    return DEMO_MENU;
+    return {
+      categories: DEMO_MENU.categories,
+      // Демо-картинки лежат в frontend/public/demo/<externalId>.svg и
+      // раздаются собранным фронтом. Синк подставит их только там, где своя
+      // картинка ещё не загружена (см. menuSync.js).
+      products: DEMO_MENU.products.map((p) => ({ ...p, imageUrl: `/demo/${p.externalId}.svg` })),
+    };
   }
 
   async sendOrder(_order) {
