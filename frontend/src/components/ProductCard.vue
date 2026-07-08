@@ -99,7 +99,10 @@ function onCalcConfirm(qty) {
   box-shadow: 0 10px 24px rgba(31, 26, 23, .1);
   transform: translateY(-2px);
 }
-.img-wrap { aspect-ratio: 4 / 3; background: #f3efe9; position: relative; border-bottom: 1px solid #ded5c8; }
+/* min-height: 0 обязателен: .product — flex-колонка, и без него автоматический
+   минимальный размер flex-элемента (по содержимому) позволяет портретным фото
+   продавливать высоту, игнорируя aspect-ratio — карточки «прыгают» по высоте. */
+.img-wrap { aspect-ratio: 4 / 3; min-height: 0; overflow: hidden; background: #f3efe9; position: relative; border-bottom: 1px solid #ded5c8; }
 .img-badge {
   position: absolute;
   inset: 0;
